@@ -340,7 +340,7 @@ public class MainActivity extends BaseActivity {
      */
     @Subscribe
     public void onEvent(SearchInPosition event) {
-        Toast.makeText(this, "Searching...", Toast.LENGTH_LONG).show();
+        Snackbar.make(findViewById(R.id.root), R.string.searching_text, Snackbar.LENGTH_SHORT).show();
         nianticManager.getMapInformation(event.getPosition().latitude, event.getPosition().longitude, 0D);
     }
 

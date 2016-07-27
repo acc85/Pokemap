@@ -65,4 +65,5 @@
     <string name="meters">meters</string>
     <string name="share_location">Share Location</string>
     <string name="serbii_link">http://serebii.net/pokemongo/pokemon/%1$s.png</string>
+    <string name="searching_text">Searching...</string>
 </resources>
