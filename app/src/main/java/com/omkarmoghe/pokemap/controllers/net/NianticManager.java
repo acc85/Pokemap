@@ -296,9 +296,9 @@ public class NianticManager {
                         pokemonMapTable.put(c.getSpawnPointId(),c);
                     }
 
-                    for(Pokestop p: mPokemonGo.getMap().getMapObjects().getPokestops()){
-                        pokeStopsMapTable.put(p.getDetails().getId(),p);
-                    }
+//                    for(Pokestop p: mPokemonGo.getMap().getMapObjects().getPokestops()){
+//                        pokeStopsMapTable.put(p.getDetails().getId(),p);
+//                    }
 
                     EventBus.getDefault().post(new CatchablePokemonEvent(pokemonMapTable));
 //                    EventBus.getDefault().post(new PokestopsEvent(pokeStopsMapTable));
