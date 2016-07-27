@@ -7,4 +7,8 @@ package com.omkarmoghe.pokemap.views;
 public interface IFilteredPokemonAdapterCallback {
 
     void checkPressed(boolean isChecked, String pokemonId);
+
+    void checkAll();
+
+    void unCheckAll();
 }

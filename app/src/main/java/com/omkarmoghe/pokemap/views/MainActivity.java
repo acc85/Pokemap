@@ -17,6 +17,8 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -25,6 +27,7 @@ import com.omkarmoghe.pokemap.models.events.LoginEventResult;
 import com.omkarmoghe.pokemap.models.events.SearchInPosition;
 import com.omkarmoghe.pokemap.models.events.ServerUnreachableEvent;
 import com.omkarmoghe.pokemap.models.events.TokenExpiredEvent;
+import com.omkarmoghe.pokemap.util.PokemonIdUtils;
 import com.omkarmoghe.pokemap.views.login.RequestCredentialsDialogFragment;
 import com.omkarmoghe.pokemap.views.map.MapWrapperFragment;
 import com.omkarmoghe.pokemap.views.settings.SettingsActivity;
@@ -34,6 +37,7 @@ import com.omkarmoghe.pokemap.controllers.app_preferences.PokemapSharedPreferenc
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -150,6 +154,7 @@ public class MainActivity extends BaseActivity {
     public void showFilterDialog(){
         LayoutInflater inflater = getLayoutInflater();
         final View view = inflater.inflate(R.layout.filtered_pokemon_layout,null);
+        final CheckBox filterAll = (CheckBox)view.findViewById(R.id.filter_select_all);
         RecyclerView filteredPokemonList = (RecyclerView)view.findViewById(R.id.filteredPokemonList);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
@@ -157,22 +162,39 @@ public class MainActivity extends BaseActivity {
         final Set<String> pokemonList = pref.getFilteredPokemon();
         final List<FilteredPokemonModel> completeListOfPokemon = new LinkedList<>();
         final List<FilteredPokemonModel> filteredPokemonModels = new LinkedList<>();
-        IFilteredPokemonAdapterCallback filteredPokemonAdapterCallback = new IFilteredPokemonAdapterCallback() {
+        final IFilteredPokemonAdapterCallback filteredPokemonAdapterCallback = new IFilteredPokemonAdapterCallback() {
             @Override
             public void checkPressed(boolean isChecked, String pokemonId) {
-                if(isChecked){
+                if (isChecked) {
                     pokemonList.add(pokemonId);
-                }else{
+                } else {
                     pokemonList.remove(pokemonId);
+                }
+            }
+
+            @Override
+            public void checkAll() {
+                for(FilteredPokemonModel f: completeListOfPokemon){
+                    pokemonList.add("-1");
+                    pokemonList.add(String.valueOf(f.getPokemonId()));
+                    f.setSelected(true);
+                }
+            }
+
+            @Override
+            public void unCheckAll() {
+                for(FilteredPokemonModel f: completeListOfPokemon){
+                    pokemonList.remove("-1");
+                    pokemonList.remove(String.valueOf(f.getPokemonId()));
+                    f.setSelected(false);
                 }
             }
         };
 
-
         for(PokemonIdOuterClass.PokemonId id: PokemonIdOuterClass.PokemonId.values()){
             if(id != MISSINGNO) {
                 try {
-                    FilteredPokemonModel filteredPokemonModel = new FilteredPokemonModel(id.name(),id.getNumber(),false);
+                    FilteredPokemonModel filteredPokemonModel = new FilteredPokemonModel( PokemonIdUtils.getLocalePokemonName(getResources(), id),id.getNumber(),false);
                     if (pokemonList!=null && pokemonList.contains(String.valueOf(id.getNumber()))) {
                         filteredPokemonModel.setSelected(true);
                     }
@@ -185,6 +207,19 @@ public class MainActivity extends BaseActivity {
         }
         final FilteredPokemonAdapter filteredPokemonAdapter = new FilteredPokemonAdapter(filteredPokemonModels,filteredPokemonAdapterCallback);
         filteredPokemonList.setAdapter(filteredPokemonAdapter);
+        filterAll.setChecked(pokemonList.contains("-1"));
+        filterAll.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                filteredPokemonAdapter.checkAllItems(b);
+                if(b) {
+                    filteredPokemonAdapterCallback.checkAll();
+                }else{
+                    filteredPokemonAdapterCallback.unCheckAll();
+                }
+            }
+        });
+
         SearchView pokemonSearch = (SearchView)view.findViewById(R.id.filteredPokemon);
         pokemonSearch.setIconifiedByDefault(false);
         SearchView.OnQueryTextListener queryTextListener = new SearchView.OnQueryTextListener() {
@@ -207,9 +242,6 @@ public class MainActivity extends BaseActivity {
                 .setPositiveButton("DONE", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-//                        EditText pokemon = (EditText)view.findViewById(R.id.filteredPokemon);
-//                        List<String> pokemonList = Arrays.asList(pokemon.getText().toString().split(","));;
-//                        Set<String> pokemonSet = new HashSet<String>(pokemonList);
                         pref.setFilteredPokemon(pokemonList);
                     }
                 })

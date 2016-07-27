@@ -1,5 +1,6 @@
 package com.omkarmoghe.pokemap.views;
 
+import android.os.Handler;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -54,11 +55,37 @@ public class FilteredPokemonAdapter extends RecyclerView.Adapter<FilteredPokemon
         holder.filteredPokemonCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                mFilteredPokemonAdapterCallback.checkPressed(b,String.valueOf(mFilteredPokemonModels.get(holder.getAdapterPosition()).getPokemonId()));
-                mFilteredPokemonModels.get(holder.getAdapterPosition()).setSelected(b);
-            }
+//                System.out.println("pressed");
+//                if((mFilteredPokemonModels.get(holder.getAdapterPosition()).getPokemonId()==-1)){
+//                    checkAllItems(b);
+//                    if(b){
+//                        mFilteredPokemonAdapterCallback.checkAll();
+//                    }else{
+//                        mFilteredPokemonAdapterCallback.unCheckAll();
+//                    }
+//                }else {
+                    mFilteredPokemonAdapterCallback.checkPressed(b, String.valueOf(mFilteredPokemonModels.get(holder.getAdapterPosition()).getPokemonId()));
+                    mFilteredPokemonModels.get(holder.getAdapterPosition()).setSelected(b);
+                }
+//            }
         });
     }
+
+
+    public void checkAllItems(boolean b){
+        System.out.println("Checkedalll");
+        for(FilteredPokemonModel f: mFilteredPokemonModels){
+            f.setSelected(b);
+        }
+        new Handler().post(new Runnable() {
+            @Override
+            public void run() {
+                notifyDataSetChanged();
+            }
+        });
+
+    }
+
 
     @Override
     public int getItemCount() {
