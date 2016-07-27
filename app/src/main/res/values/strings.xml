@@ -66,4 +66,13 @@
     <string name="share_location">Share Location</string>
     <string name="serbii_link">http://serebii.net/pokemongo/pokemon/%1$s.png</string>
     <string name="searching_text">Searching...</string>
+    <string name="action_set_tracker_type">Tracker Type</string>
+    <string name="follow_tracker_text">Follow Tracker</string>
+    <string name="location_tracker_text">Location Tracker</string>
+    <string name="no_marker_placed_error_text">No Marker has been placed. Please place a marker on the map</string>
+    <string name="search_marker_removed_text">Search marker removed</string>
+    <string name="map_not_initialized_error">The map is not initialized.</string>
+    <string name="waiting_on_location_text">Waiting on location...</string>
+    <string name="parameterised_pokedex_url">http://www.pokemon.com/uk/pokedex/%1$s</string>
+    <string name="google_places_search_error">Error occured searching for location</string>
 </resources>

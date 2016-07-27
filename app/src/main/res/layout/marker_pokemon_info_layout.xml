@@ -42,10 +42,21 @@
         android:layout_below="@+id/pokemonName"
         android:paddingStart="20dp"
         android:paddingEnd="0dp"
+        android:paddingTop="5dp"
         tools:text="Disappears in - 23:23:00"/>
+    <TextView
+        android:id="@+id/pokemonDistanceText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        android:layout_below="@+id/pokemonDisappearText"
+        android:paddingStart="20dp"
+        android:paddingEnd="0dp"
+        android:paddingTop="5dp"
+        tools:text="Distance to travel from current location - 200 meters"/>
     <Button
         android:id="@+id/add_to_filter_button"
-        android:layout_below="@+id/pokemonDisappearText"
+        android:layout_below="@+id/pokemonDistanceText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/add_to_filter"
@@ -53,7 +64,7 @@
         style="?borderlessButtonStyle"/>
     <Button
         android:id="@+id/share_location_button"
-        android:layout_below="@+id/pokemonDisappearText"
+        android:layout_below="@+id/pokemonDistanceText"
         android:layout_toEndOf="@+id/add_to_filter_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

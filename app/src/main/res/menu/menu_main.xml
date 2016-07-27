@@ -10,9 +10,9 @@
         <!--android:title="@string/action_map_terrain" app:showAsAction="never" />-->
     <item android:id="@+id/action_settings" android:orderInCategory="100"
         android:title="@string/action_settings" app:showAsAction="never" />
-    <item android:id="@+id/action_reset_from_current_position" android:orderInCategory="200"
+    <item android:id="@+id/action_rescan_from_current_position" android:orderInCategory="200"
         android:title="@string/action_reset_from_current_position" app:showAsAction="never" />
-    <item android:id="@+id/action_reset_from_marker_position" android:orderInCategory="200"
+    <item android:id="@+id/action_rescan_from_marker_position" android:orderInCategory="200"
         android:title="@string/action_reset_from_marker_position" app:showAsAction="never" />
     <item android:id="@+id/action_filter" android:orderInCategory="200"
         android:title="@string/action_filter" app:showAsAction="never" />
@@ -20,4 +20,6 @@
         android:title="@string/action_remove_search_point" app:showAsAction="never" />
     <item android:id="@+id/action_clear_markers" android:orderInCategory="200"
         android:title="@string/action_clear_markers" app:showAsAction="never" />
+    <item android:id="@+id/action_set_tracker_type" android:orderInCategory="200"
+        android:title="@string/action_set_tracker_type" app:showAsAction="never" />
 </menu>

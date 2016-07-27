@@ -47,6 +47,9 @@ dependencies {
     //Google Play Services
     compile 'com.google.android.gms:play-services-maps:9.2.1'
     compile 'com.google.android.gms:play-services-location:9.2.1'
+    compile 'com.google.android.gms:play-services-places:9.2.1'
+    compile 'com.google.maps:google-maps-services:0.1.15'
+    compile 'com.google.maps.android:android-maps-utils:0.4.3'
 
     //Pokemon Go API
     compile 'com.github.Grover-c13:PokeGOAPI-Java:2e14fab7f0'
