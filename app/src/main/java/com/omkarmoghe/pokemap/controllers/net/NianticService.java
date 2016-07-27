@@ -45,9 +45,5 @@ public interface NianticService {
         public LoginResponse(){
         }
     }
-
-    class LoginError{
-        private String[] errors;
-    }
 }
 

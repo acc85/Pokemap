@@ -8,8 +8,6 @@ import android.support.annotation.NonNull;
 import java.util.HashSet;
 import java.util.Set;
 
-import POGOProtos.Enums.PokemonIdOuterClass;
-
 /**
  * Provide convenience methods to access shared preferences
  */
@@ -17,13 +15,19 @@ import POGOProtos.Enums.PokemonIdOuterClass;
 public final class PokemapSharedPreferences implements PokemapAppPreferences {
     private static final String USERNAME_KEY = "UsernameKey";
     private static final String PASSWORD_KEY = "PasswordKey";
-    private static final String GOOGLE_TOKEN_KEY = "GoogleTokenKey";
-    private static final String SHOW_SCANNED_PLACES = "scanned_checkbox";
-    private static final String SHOW_POKESTOPS = "pokestops_checkbox";
-    private static final String SHOW_GYMS = "gyms_checkbox";
+    private static final String FILTERED_POKEMON_KEY = "FilteredPokemonKey";
+    private static final String STEPS_KEY = "StepsKey";
+    private static final String MAP_TYPE_KEY = "MapTypeKey";
+    private static final String REMEMBER_ME = "RememberMe";
+    private static final String REMEMBER_ME_LOGIN_TYPE = "RememberMeLoginType";
+    private static final String GOOGLE_AUTH_TOKEN = "GoogleAuthToken";
     private static final String SERVICE_KEY = "background_poke_service";
     private static final String SERVICE_REFRESH_KEY = "service_refresh_rate";
-    private static final String POKEMONS_TO_SHOW = "pokemons_to_show";
+    private static final String SHOW_POKESTOPS = "show_pokestops";
+    private static final String SHOW_GYMS = "show_gyms";
+
+    public static final int PTC = 0;
+    public static final int GOOGLE = 1;
 
     private final SharedPreferences sharedPreferences;
 
@@ -41,22 +45,6 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
         return sharedPreferences.contains(PASSWORD_KEY);
     }
 
-    public Set<PokemonIdOuterClass.PokemonId> getShowablePokemonIDs() {
-        Set<String> showablePokemonStringIDs = sharedPreferences.getStringSet(POKEMONS_TO_SHOW, new HashSet<String>());
-        Set<PokemonIdOuterClass.PokemonId> showablePokemonIDs = new HashSet<>();
-        for (String stringId : showablePokemonStringIDs) {
-            showablePokemonIDs.add(PokemonIdOuterClass.PokemonId.forNumber(Integer.valueOf(stringId)));
-        }
-        return showablePokemonIDs;
-    }
-
-    public void setShowablePokemonIDs(Set<PokemonIdOuterClass.PokemonId> ids) {
-        Set<String> showablePokemonStringIDs = new HashSet<>();
-        for (PokemonIdOuterClass.PokemonId pokemonId : ids) {
-            showablePokemonStringIDs.add(String.valueOf(pokemonId.getNumber()));
-        }
-        sharedPreferences.edit().putStringSet(POKEMONS_TO_SHOW, showablePokemonStringIDs).apply();
-    }
 
     @Override
     public String getUsername() {
@@ -79,28 +67,80 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     }
 
     @Override
-    public boolean isGoogleTokenAvailable() {
-        return sharedPreferences.contains(GOOGLE_TOKEN_KEY);
+    public void setRememberMe(boolean rememberME) {
+        sharedPreferences.edit().putBoolean(REMEMBER_ME, rememberME).apply();
     }
 
     @Override
-    public String getGoogleToken() {
-        return sharedPreferences.getString(GOOGLE_TOKEN_KEY, "");
+    public int getRememberMeLoginType() {
+        return sharedPreferences.getInt(REMEMBER_ME_LOGIN_TYPE, 0);
     }
+
+    @Override
+    public void setRememberMeLoginType(int rememberMeLoginType) {
+        sharedPreferences.edit().putInt(REMEMBER_ME_LOGIN_TYPE, rememberMeLoginType).apply();
+    }
+
+    @Override
+    public boolean rememberMe() {
+        return sharedPreferences.getBoolean(REMEMBER_ME, false);
+    }
+
+    public Set<String> getFilteredPokemon(){
+        return sharedPreferences.getStringSet(FILTERED_POKEMON_KEY,new HashSet<String>());
+    }
+
+
+    public void addPokemonToFilteredList(String id){
+        Set<String> filter = sharedPreferences.getStringSet(FILTERED_POKEMON_KEY,new HashSet<String>());
+        filter.add(id);
+        setFilteredPokemon(filter);
+    }
+
+    public String getGoogleAuthToken(){
+        return sharedPreferences.getString(GOOGLE_AUTH_TOKEN,"");
+    };
+
+    public void setGoogleAuthToken(String authToken){
+        sharedPreferences.edit().putString(GOOGLE_AUTH_TOKEN, authToken).apply();
+    };
 
     @Override
     public void setServiceState(@NonNull boolean isEnabled) {
         sharedPreferences.edit().putBoolean(SERVICE_KEY, isEnabled).apply();
     }
 
+
+    public void setFilteredPokemon(Set<String> filteredPokemon){
+        sharedPreferences.edit().putStringSet(FILTERED_POKEMON_KEY, filteredPokemon).apply();
+    }
+
+    public int getSteps(){
+        return sharedPreferences.getInt(STEPS_KEY,10);
+    }
+
+    public void setSteps(int steps){
+        sharedPreferences.edit().putInt(STEPS_KEY, steps).apply();
+    }
+
+
+    public int getMapSelectionType(){
+        return sharedPreferences.getInt(MAP_TYPE_KEY,0);
+
+    };
+
+    public void setMapSelectionType(int type){
+        sharedPreferences.edit().putInt(MAP_TYPE_KEY, type).apply();
+    };
+
     @Override
-    public void setGoogleToken(@NonNull String token) {
-        sharedPreferences.edit().putString(GOOGLE_TOKEN_KEY, token).apply();
+    public boolean isServiceEnabled() {
+        return sharedPreferences.getBoolean(SERVICE_KEY, false);
     }
 
     @Override
-    public boolean getShowScannedPlaces() {
-        return sharedPreferences.getBoolean(SHOW_SCANNED_PLACES, false);
+    public int getServiceRefreshRate() {
+        return Integer.valueOf(sharedPreferences.getString(SERVICE_REFRESH_KEY, "60"));
     }
 
     @Override
@@ -111,24 +151,5 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     @Override
     public boolean getShowGyms() {
         return sharedPreferences.getBoolean(SHOW_GYMS, false);
-    }
-
-    @Override
-    public void clearLoginCredentials() {
-
-        sharedPreferences.edit().remove(GOOGLE_TOKEN_KEY).apply();
-        sharedPreferences.edit().remove(USERNAME_KEY).apply();
-        sharedPreferences.edit().remove(PASSWORD_KEY).apply();
-    }
-
-
-    @Override
-    public boolean isServiceEnabled() {
-        return sharedPreferences.getBoolean(SERVICE_KEY, false);
-    }
-
-    @Override
-    public int getServiceRefreshRate() {
-        return Integer.valueOf(sharedPreferences.getString(SERVICE_REFRESH_KEY, "60"));
     }
 }

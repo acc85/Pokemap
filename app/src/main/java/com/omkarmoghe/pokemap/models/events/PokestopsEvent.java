@@ -3,23 +3,24 @@ package com.omkarmoghe.pokemap.models.events;
 import com.pokegoapi.api.map.fort.Pokestop;
 
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Created by socrates on 7/23/2016.
  */
 public class PokestopsEvent implements IEvent {
 
-    private Collection<Pokestop> pokestops;
+    private Map<String,Pokestop> pokestops;
 
-    public PokestopsEvent(Collection<Pokestop> pokestops) {
-        this.pokestops = pokestops;
+    public PokestopsEvent(Map<String, Pokestop> catchablePokemon) {
+        this.pokestops = catchablePokemon;
     }
 
-    public Collection<Pokestop> getPokestops() {
+    public Map<String, Pokestop> getPokestops() {
         return pokestops;
     }
 
-    public void setPokestops(Collection<Pokestop> pokestops) {
+    public void setPokestops(Map<String, Pokestop> pokestops) {
         this.pokestops = pokestops;
     }
 }

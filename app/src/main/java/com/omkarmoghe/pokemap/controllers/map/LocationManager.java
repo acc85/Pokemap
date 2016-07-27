@@ -48,7 +48,7 @@ public class LocationManager {
             @Override
             public void onLocationChanged(Location newLocation) {
                 location = newLocation;
-                Log.d(TAG, "User location found: " + location.getLatitude() + ", " + location.getLongitude());
+                Log.d(TAG, "Location Found: " + location.getLatitude() + ", " + location.getLongitude());
                 notifyLocationChanged(location);
             }
         };
@@ -77,15 +77,13 @@ public class LocationManager {
 
                         @Override
                         public void onConnectionSuspended(int i) {
-                            Log.e(TAG, "Failed to fetch user location. Connection suspended, code: " + i);
-                            notifyLocationFetchFailed(null);
+
                         }
                     })
                     .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
                         @Override
                         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-                            Log.e(TAG, "Failed to fetch user location. Connection result: " + connectionResult.getErrorMessage());
-                            notifyLocationFetchFailed(connectionResult);
+
                         }
                     })
                     .addApi(LocationServices.API)
@@ -93,65 +91,44 @@ public class LocationManager {
         }
         listeners = new ArrayList<>();
     }
-
     public LatLng getLocation(){
         //Don't getLatitude without checking if location is not null... it will throw sys err...
         if(location != null){
             return new LatLng(location.getLatitude(), location.getLongitude());
-        } else {
-            notifyLocationFetchFailed(null);
         }
         return null;
     }
 
     public void onResume(){
-
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
-        }
+        mGoogleApiClient.connect();
     }
 
-    public void onPause(){
 
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.disconnect();
-        }
+
+    public void onPause(){
+        mGoogleApiClient.disconnect();
     }
 
     public void unregister(Listener listener){
-        if(listeners != null && listeners.indexOf(listener) != -1){
+        if(listeners.indexOf(listener) != -1){
             listeners.remove(listener);
         }
     }
     public void register(Listener listener){
-        if(listeners != null && listeners.indexOf(listener) == -1){
+        if(listeners.indexOf(listener) == -1){
             listeners.add(listener);
         }
     }
 
-    private void notifyLocationFetchFailed(@Nullable ConnectionResult connectionResult) {
-
-        if (listeners != null) {
-
-            for (Listener listener : listeners) {
-                listener.onLocationFetchFailed(connectionResult);
-            }
-        }
-    }
-
     private void notifyLocationChanged(Location location){
-
-        if (listeners != null) {
-            for (Listener listener : listeners) {
-                listener.onLocationChanged(location);
-            }
+        for(Listener listener: listeners){
+            listener.onLocationChanged(location);
         }
 
     }
 
-    public interface Listener {
+    public interface Listener{
         void onLocationChanged(Location location);
-        void onLocationFetchFailed(@Nullable ConnectionResult connectionResult);
     }
 
 

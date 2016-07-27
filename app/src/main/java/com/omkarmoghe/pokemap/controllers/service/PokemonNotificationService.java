@@ -24,6 +24,7 @@ import com.pokegoapi.api.map.pokemon.CatchablePokemon;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -124,7 +125,7 @@ public class PokemonNotificationService extends Service{
 
     @Subscribe
     public void onEvent(CatchablePokemonEvent event) {
-        List<CatchablePokemon> catchablePokemon = event.getCatchablePokemon();
+        List<CatchablePokemon> catchablePokemon = new ArrayList<>(event.getCatchablePokemon().values());
 
         LatLng location = locationManager.getLocation();
         Location myLoc = new Location("");

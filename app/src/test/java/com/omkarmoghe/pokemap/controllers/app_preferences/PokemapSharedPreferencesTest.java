@@ -20,6 +20,7 @@ import static org.mockito.Mockito.*;
 public class PokemapSharedPreferencesTest {
     private static final String USERNAME_KEY = "UsernameKey";
     private static final String PASSWORD_KEY = "PasswordKey";
+    private static final String REMEMBER_ME_KEY = "RememberMeKey";
 
     @Mock
     private Context context;
@@ -140,7 +141,7 @@ public class PokemapSharedPreferencesTest {
 
     @Test
     public void getPassword() {
-        //Pretend username was set previously
+        //Pretend password was set previously
         String passwordStored = "Password Stored";
         when(sharedPreferences.getString(eq(PASSWORD_KEY), anyString())).thenReturn(passwordStored);
 
@@ -151,4 +152,19 @@ public class PokemapSharedPreferencesTest {
         verify(sharedPreferences, times(1)).getString(PASSWORD_KEY, "");
         assertEquals(returnedValue, passwordStored);
     }
+
+    @Test
+    public void rememberMe() {
+        //Pretend remember was checked previously
+        boolean rememberMe = true;
+        when(sharedPreferences.getBoolean(eq(REMEMBER_ME_KEY), anyBoolean())).thenReturn(rememberMe);
+
+        //Act
+        boolean returnedValue = systemUnderTesting.rememberMe();
+
+        //Assert
+        verify(sharedPreferences, times(1)).getBoolean(REMEMBER_ME_KEY, false);
+        assertEquals(returnedValue, rememberMe);
+    }
+
 }

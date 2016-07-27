@@ -2,10 +2,7 @@ package com.omkarmoghe.pokemap.controllers.app_preferences;
 
 import android.support.annotation.NonNull;
 
-import java.util.List;
 import java.util.Set;
-
-import POGOProtos.Enums.PokemonIdOuterClass;
 
 /**
  * A contract which defines a user's app preferences
@@ -41,17 +38,36 @@ public interface PokemapAppPreferences {
      */
     String getPassword();
 
-    boolean isGoogleTokenAvailable();
+    /**
+     * @param rememberme that should be set
+     */
+    void setRememberMe(boolean rememberme);
 
-    String getGoogleToken();
+    /**
+     * @return the password stored or an empty @see java.lang.String
+     */
+    boolean rememberMe();
 
-    void setGoogleToken(@NonNull String token);
+    int getRememberMeLoginType();
 
-    boolean getShowScannedPlaces();
-    boolean getShowPokestops();
-    boolean getShowGyms();
+    void setRememberMeLoginType(int rememberMeLoginType);
 
-    void clearLoginCredentials();
+    String getGoogleAuthToken();
+
+    void setGoogleAuthToken(String authToken);
+
+    Set<String> getFilteredPokemon();
+
+    void setFilteredPokemon(Set<String> filteredPokemon);
+
+    int getSteps();
+
+    void setSteps(int steps);
+
+    int getMapSelectionType();
+
+    void setMapSelectionType(int type);
+
     /**
      *
      * @param isEnabled Sets if the background service is enabled.
@@ -66,10 +82,9 @@ public interface PokemapAppPreferences {
 
     int getServiceRefreshRate();
 
-    /**
-     * @return a set of pokemonIDs which can be shown according to the preferences.
-     */
-    Set<PokemonIdOuterClass.PokemonId> getShowablePokemonIDs();
+    boolean getShowPokestops();
+    boolean getShowGyms();
 
-    void setShowablePokemonIDs(Set<PokemonIdOuterClass.PokemonId> pokemonIDs);
+
+
 }

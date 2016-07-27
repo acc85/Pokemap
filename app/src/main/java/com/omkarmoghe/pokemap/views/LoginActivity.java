@@ -3,6 +3,8 @@ package com.omkarmoghe.pokemap.views;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
@@ -17,8 +19,10 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -29,10 +33,6 @@ import com.omkarmoghe.pokemap.controllers.app_preferences.PokemapSharedPreferenc
 import com.omkarmoghe.pokemap.controllers.net.GoogleManager;
 import com.omkarmoghe.pokemap.controllers.net.GoogleService;
 import com.omkarmoghe.pokemap.controllers.net.NianticManager;
-import com.omkarmoghe.pokemap.models.events.LoginEventResult;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
 
 /**
  * A login screen that offers login via username/password. And a Google Sign in
@@ -49,6 +49,7 @@ public class LoginActivity extends AppCompatActivity{
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+    private CheckBox mRememberMe;
     private NianticManager mNianticManager;
     private NianticManager.LoginListener mNianticLoginListener;
     private GoogleManager mGoogleManager;
@@ -65,6 +66,7 @@ public class LoginActivity extends AppCompatActivity{
         mGoogleManager = GoogleManager.getInstance();
         mPref = new PokemapSharedPreferences(this);
 
+
         setContentView(R.layout.activity_login);
 
         mNianticLoginListener = new NianticManager.LoginListener() {
@@ -73,36 +75,51 @@ public class LoginActivity extends AppCompatActivity{
                 showProgress(false);
                 Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
                 mNianticManager.setPTCAuthToken(authToken);
-
-                // store prefs
-                mPref.setUsername(mUsernameView.getText().toString());
-                mPref.setPassword(mPasswordView.getText().toString());
-
                 finishLogin();
             }
 
             @Override
             public void authFailed(String message) {
-                Log.e(TAG, "Failed to authenticate. authFailed() called with: message = [" + message + "]");
-                showAuthFailed();
+                Log.d(TAG, "authFailed() called with: message = [" + message + "]");
+                Snackbar.make((View)mLoginFormView.getParent(), "PTC Login Failed", Snackbar.LENGTH_LONG).show();
+                mProgressView.setVisibility(View.GONE);
+                mLoginFormView.setAlpha(1);
+                mLoginFormView.setVisibility(View.VISIBLE);
             }
         };
 
         mGoogleLoginListener = new GoogleManager.LoginListener() {
             @Override
-            public void authSuccessful(String authToken) {
-                showProgress(false);
-                mPref.setGoogleToken(authToken);
-                Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
-                mNianticManager.setGoogleAuthToken(authToken);
-                finishLogin();
+            public void authSuccessful(final String authToken) {
+                View view = getLayoutInflater().inflate(R.layout.google_auth_remmeber_me_layout,null);
+                final CheckBox rememberMeCheckbox = (CheckBox)view.findViewById(R.id.google_remember_me);
+                new AlertDialog.Builder(LoginActivity.this)
+                        .setView(view)
+                        .setTitle("Remember Me")
+                        .setPositiveButton("Done", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                mPref.setRememberMe(rememberMeCheckbox.isChecked());
+                                dialogInterface.dismiss();
+                                showProgress(false);
+                                mPref.setRememberMeLoginType(1);
+                                Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
+                                mPref.setGoogleAuthToken(authToken);
+                                setGoogleAuthTokenAndFinish();
+                            }
+                        }).create()
+                        .show();
             }
 
             @Override
             public void authFailed(String message) {
                 showProgress(false);
-                Log.e(TAG, "Failed to authenticate. authFailed() called with: message = [" + message + "]");
-                Snackbar.make((View)mLoginFormView.getParent(), R.string.google_login_failed, Snackbar.LENGTH_LONG).show();
+                Log.d(TAG, "authFailed() called with: message = [" + message + "]");
+                mPref.setRememberMe(false);
+                mPref.setRememberMeLoginType(0);
+                mPref.setUsername("");
+                mPref.setPassword("");
+                Snackbar.make((View)mLoginFormView.getParent(), "Google Login Failed", Snackbar.LENGTH_LONG).show();
             }
 
             @Override
@@ -113,18 +130,12 @@ public class LoginActivity extends AppCompatActivity{
             }
         };
 
-        findViewById(R.id.txtDisclaimer).setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                new AlertDialog.Builder(LoginActivity.this)
-                        .setTitle(getString(R.string.login_warning_title))
-                        .setMessage(Html.fromHtml(getString(R.string.login_warning) + "<b>"+getString(R.string.ban)+"</b>"))
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show();
-            }
-        });
+        //Bold words in Warning
+        TextView warning = (TextView) findViewById(R.id.login_warning);
+        String text = getString(R.string.login_warning) + " <b>banned</b>.";
+        warning.setText(Html.fromHtml(text));
 
-        // Set up the triggerAutoLogin form.
+        // Set up the login form.
         mUsernameView = (AutoCompleteTextView) findViewById(R.id.username);
 
         mPasswordView = (EditText) findViewById(R.id.password);
@@ -132,18 +143,28 @@ public class LoginActivity extends AppCompatActivity{
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
                 if (id == R.id.login || id == EditorInfo.IME_NULL) {
-                    validatePTCLoginForm();
+                    attemptPTCLogin();
                     return true;
                 }
                 return false;
             }
         });
 
+        mRememberMe = (CheckBox)findViewById(R.id.remember_me_check_box);
+
         Button signInButton = (Button) findViewById(R.id.email_sign_in_button);
         signInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                validatePTCLoginForm();
+                InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                if(mRememberMe.isChecked()){
+                    mPref.setRememberMe(true);
+                    mPref.setRememberMeLoginType(0);
+                }
+                mPref.setPassword(mPasswordView.getText().toString());
+                mPref.setUsername(mUsernameView.getText().toString());
+                attemptPTCLogin();
             }
         });
 
@@ -159,18 +180,18 @@ public class LoginActivity extends AppCompatActivity{
             }
         });
 
-        triggerAutoLogin();
+        if(mPref.rememberMe()){
+            if(mPref.getRememberMeLoginType() == PokemapSharedPreferences.GOOGLE){
+                setGoogleAuthTokenAndFinish();
+            }else {
+                attemptPTCLogin();
+            }
+        }
     }
 
-    private void showAuthFailed() {
-
-        showProgress(false);
-
-        // set Ptc credentials (remembering)
-        mUsernameView.setText(mPref.getUsername());
-        mPasswordView.setText(mPref.getPassword());
-
-        Snackbar.make((View)mLoginFormView.getParent(),getString(R.string.toast_ptc_login_error), Snackbar.LENGTH_LONG).show();
+    private void setGoogleAuthTokenAndFinish() {
+        mNianticManager.setGoogleAuthToken(mPref.getGoogleAuthToken());
+        finishLogin();
     }
 
     @Override
@@ -185,18 +206,25 @@ public class LoginActivity extends AppCompatActivity{
     }
 
     /**
-     * Attempts to sign in or register the account specified by the triggerAutoLogin form.
+     * Attempts to sign in or register the account specified by the login form.
      * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual triggerAutoLogin attempt is made.
+     * errors are presented and no actual login attempt is made.
      */
-    private void validatePTCLoginForm() {
+    private void attemptPTCLogin() {
         // Reset errors.
         mUsernameView.setError(null);
         mPasswordView.setError(null);
+        String username = "";
+        String password = "";
+        if(!mPref.getUsername().isEmpty()){
+            username = mPref.getUsername();
+            password = mPref.getPassword();
+        }else{
+            // Store values at the time of the login attempt.
+            username = mUsernameView.getText().toString();
+            password = mPasswordView.getText().toString();
+        }
 
-        // Store values at the time of the triggerAutoLogin attempt.
-        String username = mUsernameView.getText().toString();
-        String password = mPasswordView.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
@@ -215,19 +243,16 @@ public class LoginActivity extends AppCompatActivity{
             cancel = true;
         }
 
-        // auto-login is reading from here,
-        // if not persisted, you can't change the values in the form
-        mPref.setPassword(password);
-        mPref.setUsername(username);
-
         if (cancel) {
-            // There was an error; don't attempt triggerAutoLogin and focus the first
+            // There was an error; don't attempt login and focus the first
             // form field with an error.
             focusView.requestFocus();
         } else {
             // Show a progress spinner, and kick off a background task to
-            // perform the user triggerAutoLogin attempt.
-            triggerAutoLogin();
+            // perform the user login attempt.
+            showProgress(true);
+            mNianticManager.login(username, password, mNianticLoginListener);
+
         }
     }
 
@@ -238,11 +263,10 @@ public class LoginActivity extends AppCompatActivity{
     }
 
     /**
-     * Shows the progress UI and hides the triggerAutoLogin form.
+     * Shows the progress UI and hides the login form.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show) {
-
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
@@ -272,58 +296,6 @@ public class LoginActivity extends AppCompatActivity{
             mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
-    }
-
-    private void triggerAutoLogin() {
-
-        if (mPref.isUsernameSet() || mPref.isPasswordSet()) {
-
-            showProgress(true);
-
-            mNianticManager.login(mPref.getUsername(), mPref.getPassword());
-
-        } else if (mPref.isGoogleTokenAvailable()) {
-
-            showProgress(true);
-
-            mNianticManager.setGoogleAuthToken(mPref.getGoogleToken());
-        }
-    }
-
-    /**
-     * Called whenever a LoginEventResult is posted to the bus. Originates from LoginTask.java
-     *
-     * @param result Results of a log in attempt
-     */
-    @Subscribe
-    public void onEvent(final LoginEventResult result) {
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-
-                if (result.isLoggedIn()) {
-
-                    finishLogin();
-
-                } else {
-
-                    showAuthFailed();
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onResume(){
-        super.onResume();
-        EventBus.getDefault().register(this);
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        EventBus.getDefault().unregister(this);
     }
 }
 

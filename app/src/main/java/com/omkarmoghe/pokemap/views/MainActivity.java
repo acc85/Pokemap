@@ -1,25 +1,31 @@
 package com.omkarmoghe.pokemap.views;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import com.google.android.gms.maps.model.LatLng;
+import android.view.View;
+import android.widget.Toast;
+
+import com.google.android.gms.maps.GoogleMap;
 import com.omkarmoghe.pokemap.R;
-import com.omkarmoghe.pokemap.controllers.service.PokemonNotificationService;
-import com.omkarmoghe.pokemap.models.events.ClearMapEvent;
-import com.omkarmoghe.pokemap.models.events.InternalExceptionEvent;
 import com.omkarmoghe.pokemap.models.events.LoginEventResult;
 import com.omkarmoghe.pokemap.models.events.SearchInPosition;
 import com.omkarmoghe.pokemap.models.events.ServerUnreachableEvent;
-import com.omkarmoghe.pokemap.models.map.SearchParams;
-import com.omkarmoghe.pokemap.controllers.map.LocationManager;
+import com.omkarmoghe.pokemap.models.events.TokenExpiredEvent;
+import com.omkarmoghe.pokemap.views.login.RequestCredentialsDialogFragment;
 import com.omkarmoghe.pokemap.views.map.MapWrapperFragment;
 import com.omkarmoghe.pokemap.views.settings.SettingsActivity;
 import com.omkarmoghe.pokemap.controllers.app_preferences.PokemapAppPreferences;
@@ -28,13 +34,17 @@ import com.omkarmoghe.pokemap.controllers.app_preferences.PokemapSharedPreferenc
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+
+import POGOProtos.Enums.PokemonIdOuterClass;
+
+import static POGOProtos.Enums.PokemonIdOuterClass.PokemonId.MISSINGNO;
 
 public class MainActivity extends BaseActivity {
     private static final String TAG = "Pokemap";
-    private static final String MAP_FRAGMENT_TAG = "MapFragment";
 
-    private boolean skipNotificationServer;
     private PokemapAppPreferences pref;
 
     //region Lifecycle Methods
@@ -42,44 +52,24 @@ public class MainActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        EventBus.getDefault().register(this);
         pref = new PokemapSharedPreferences(this);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        MapWrapperFragment mapWrapperFragment = (MapWrapperFragment) fragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG);
-        if(mapWrapperFragment == null) {
-            mapWrapperFragment = MapWrapperFragment.newInstance();
-        }
-        fragmentManager.beginTransaction().replace(R.id.main_container,mapWrapperFragment, MAP_FRAGMENT_TAG)
-                .commit();
-
-        if(pref.isServiceEnabled()){
-            startNotificationService();
+        if(getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName()) == null) {
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.replace(R.id.main_container, MapWrapperFragment.newInstance(), MapWrapperFragment.class.getName())
+                    .addToBackStack(null)
+                    .commit();
         }
     }
 
     @Override
-    public void onResume(){
-        super.onResume();
-        EventBus.getDefault().register(this);
-
-        if(pref.isServiceEnabled()){
-            stopNotificationService();
-        }
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
+    public void onStop() {
+        super.onStop();
         EventBus.getDefault().unregister(this);
-
-        if(!skipNotificationServer && pref.isServiceEnabled()){
-            startNotificationService();
-        }
-
     }
 
     //region Menu Methods
@@ -93,32 +83,162 @@ public class MainActivity extends BaseActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
-            skipNotificationServer = true;
-            startActivityForResult(new Intent(this, SettingsActivity.class),0);
-        } else if (id == R.id.action_clear) {
-            EventBus.getDefault().post(new ClearMapEvent());
-        } else if (id == R.id.action_logout) {
-            logout();
+            startActivity(new Intent(this, SettingsActivity.class));
+        } else if (id == R.id.action_reset_from_current_position) {
+            MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+            if(mwp!=null){
+                mwp.setLocation(null);
+                mwp.setStaticLocation(null);
+                mwp.resetStepsPosition();
+            }
+            login();
+        } else if (id == R.id.action_reset_from_marker_position) {
+            MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+            if(mwp!=null && mwp.getMarkerPosition() != null){
+                mwp.setToMarkerPosition();
+                mwp.resetStepsPosition();
+                login();
+            }else{
+                Snackbar.make(findViewById(R.id.root), "No Marker has been placed. Please place a marker on the map", Snackbar.LENGTH_LONG).show();
+            }
+
+        } else if(id == R.id.action_filter){
+            showFilterDialog();
+        } else if(id == R.id.action_clear_markers){
+            MapWrapperFragment mwf = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+            if(mwf!=null){
+                mwf.clearAllPokemon();
+            }
+        }else if(id == R.id.action_remove_search_point){
+            MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+            if(mwp!=null && mwp.getMarkerPosition() != null){
+                mwp.removeSearchMarker();
+                mwp.setLocation(null);
+                mwp.setStaticLocation(null);
+                mwp.resetStepsPosition();
+                Toast.makeText(this, "Search marker removed", Toast.LENGTH_SHORT).show();
+            }
+        }else if(id == R.id.action_map_type){
+            showMapTypeDialog();
         }
+
+
         return super.onOptionsItemSelected(item);
     }
 
-    private void logout() {
-        skipNotificationServer = true;
-        pref.clearLoginCredentials();
-        startActivity(new Intent(this, LoginActivity.class));
-        finish();
+    void showMapTypeDialog(){
+        final MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        int mapType = 0;
+        if(mwp!=null){
+            mapType = mwp.getMapType();
+        }
+        CharSequence[] mapChoices = new CharSequence[]{"Satellite","Terrain"};
+        new AlertDialog.Builder(this)
+                .setSingleChoiceItems(mapChoices, mapType == GoogleMap.MAP_TYPE_HYBRID ? 0 : 1, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if(mwp != null) {
+                            mwp.setMapType(i == 0 ? GoogleMap.MAP_TYPE_HYBRID : GoogleMap.MAP_TYPE_NORMAL);
+                        }
+                        pref.setMapSelectionType(i);
+                        dialogInterface.dismiss();
+                    }
+                }).create()
+                .show();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        skipNotificationServer = false;
+    public void showFilterDialog(){
+        LayoutInflater inflater = getLayoutInflater();
+        final View view = inflater.inflate(R.layout.filtered_pokemon_layout,null);
+        RecyclerView filteredPokemonList = (RecyclerView)view.findViewById(R.id.filteredPokemonList);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        filteredPokemonList.setLayoutManager(linearLayoutManager);
+        final Set<String> pokemonList = pref.getFilteredPokemon();
+        final List<FilteredPokemonModel> completeListOfPokemon = new LinkedList<>();
+        final List<FilteredPokemonModel> filteredPokemonModels = new LinkedList<>();
+        IFilteredPokemonAdapterCallback filteredPokemonAdapterCallback = new IFilteredPokemonAdapterCallback() {
+            @Override
+            public void checkPressed(boolean isChecked, String pokemonId) {
+                if(isChecked){
+                    pokemonList.add(pokemonId);
+                }else{
+                    pokemonList.remove(pokemonId);
+                }
+            }
+        };
+
+
+        for(PokemonIdOuterClass.PokemonId id: PokemonIdOuterClass.PokemonId.values()){
+            if(id != MISSINGNO) {
+                try {
+                    FilteredPokemonModel filteredPokemonModel = new FilteredPokemonModel(id.name(),id.getNumber(),false);
+                    if (pokemonList!=null && pokemonList.contains(String.valueOf(id.getNumber()))) {
+                        filteredPokemonModel.setSelected(true);
+                    }
+                    filteredPokemonModels.add(filteredPokemonModel);
+                    completeListOfPokemon.add(filteredPokemonModel);
+                }catch(IllegalArgumentException iae){
+                    //empty
+                }
+            }
+        }
+        final FilteredPokemonAdapter filteredPokemonAdapter = new FilteredPokemonAdapter(filteredPokemonModels,filteredPokemonAdapterCallback);
+        filteredPokemonList.setAdapter(filteredPokemonAdapter);
+        SearchView pokemonSearch = (SearchView)view.findViewById(R.id.filteredPokemon);
+        pokemonSearch.setIconifiedByDefault(false);
+        SearchView.OnQueryTextListener queryTextListener = new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                System.out.println("Filteredlist size:"+completeListOfPokemon.size());
+                filteredPokemonAdapter.updateList(filter(completeListOfPokemon, newText));
+                return true;
+            }
+        };
+        pokemonSearch.setOnQueryTextListener(queryTextListener);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Filtered Pokemon")
+                .setView(view)
+                .setPositiveButton("DONE", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+//                        EditText pokemon = (EditText)view.findViewById(R.id.filteredPokemon);
+//                        List<String> pokemonList = Arrays.asList(pokemon.getText().toString().split(","));;
+//                        Set<String> pokemonSet = new HashSet<String>(pokemonList);
+                        pref.setFilteredPokemon(pokemonList);
+                    }
+                })
+                .setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                })
+                .create()
+                .show();
+    }
+
+    private List<FilteredPokemonModel> filter(List<FilteredPokemonModel> models, String query) {
+        query = query.toLowerCase();
+
+        final List<FilteredPokemonModel> filteredModelList = new LinkedList<>();
+        for (FilteredPokemonModel model : models) {
+            final String pokemonName = model.getPokemonName().toLowerCase();
+            if (pokemonName.contains(query)) {
+                filteredModelList.add(model);
+            }
+        }
+        return filteredModelList;
     }
 
     @Override
     public void onBackPressed() {
-        skipNotificationServer = true;
-        finish();
+        this.finish();
     }
 
     @Override
@@ -133,36 +253,54 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    private void startNotificationService(){
-        Intent intent = new Intent(this, PokemonNotificationService.class);
-        startService(intent);
+    private void login() {
+        if(!pref.getGoogleAuthToken().isEmpty()) {
+            nianticManager.setGoogleAuthToken(pref.getGoogleAuthToken());
+        }else {
+            if (!pref.isUsernameSet() || !pref.isPasswordSet()) {
+                requestLoginCredentials();
+            } else {
+                nianticManager.login(pref.getUsername(), pref.getPassword());
+            }
+        }
     }
 
-    private void stopNotificationService() {
-        Intent intent = new Intent(this, PokemonNotificationService.class);
-        stopService(intent);
+    private void requestLoginCredentials() {
+        getSupportFragmentManager().beginTransaction().add(RequestCredentialsDialogFragment.newInstance(
+                new RequestCredentialsDialogFragment.Listener() {
+                    @Override
+                    public void credentialsIntroduced(String username, String password) {
+                        pref.setUsername(username);
+                        pref.setPassword(password);
+                        login();
+                    }
+                }), "request_credentials").commit();
     }
 
     /**
-     * Triggers a first pokemon scan after a successful login
+     * Called whenever a LoginEventResult is posted to the bus. Originates from LoginTask.java
      *
      * @param result Results of a log in attempt
      */
     @Subscribe
     public void onEvent(LoginEventResult result) {
-
         if (result.isLoggedIn()) {
-
-            LatLng latLng = LocationManager.getInstance(MainActivity.this).getLocation();
-
-            if (latLng != null) {
-                nianticManager.getMapInformation(latLng.latitude, latLng.longitude, 0D);
-            } else {
-                Snackbar.make(findViewById(R.id.root), getString(R.string.toast_login_error), Snackbar.LENGTH_LONG).show();
-            }
+            Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
+        } else {
+            Snackbar.make(findViewById(R.id.root), "Could not log in. Make sure your credentials are correct.", Snackbar.LENGTH_LONG).show();
+            pref.setGoogleAuthToken("");
+            pref.setRememberMe(false);
+            pref.setRememberMeLoginType(PokemapSharedPreferences.PTC);
+            startLoginActivity();
         }
     }
 
+
+    private void startLoginActivity(){
+        Intent intent = new Intent(this,LoginActivity.class);
+        pref.setPassword("");
+        startActivity(intent);
+    };
     /**
      * Called whenever a use whats to search pokemons on a different position
      *
@@ -170,15 +308,8 @@ public class MainActivity extends BaseActivity {
      */
     @Subscribe
     public void onEvent(SearchInPosition event) {
-        SearchParams params = new SearchParams(SearchParams.DEFAULT_RADIUS * 3, new LatLng(event.getPosition().latitude, event.getPosition().longitude));
-        List<LatLng> list = params.getSearchArea();
-        MapWrapperFragment.pokeSnackbar.setText(getString(R.string.toast_searching));
-        MapWrapperFragment.pokeSnackbar.show();
-        MapWrapperFragment.pokemonFound = 0;
-        MapWrapperFragment.positionNum = 0;
-        for (LatLng p : list) {
-            nianticManager.getMapInformation(p.latitude, p.longitude, 0D);
-        }
+        Toast.makeText(this, "Searching...", Toast.LENGTH_LONG).show();
+        nianticManager.getMapInformation(event.getPosition().latitude, event.getPosition().longitude, 0D);
     }
 
     /**
@@ -188,19 +319,31 @@ public class MainActivity extends BaseActivity {
      */
     @Subscribe
     public void onEvent(ServerUnreachableEvent event) {
-        Snackbar.make(findViewById(R.id.root), getString(R.string.toast_server_unreachable), Snackbar.LENGTH_LONG).show();
-        event.getE().printStackTrace();
+        Toast.makeText(this, "Unable to contact the Pokemon GO servers. The servers may be down.", Toast.LENGTH_LONG).show();
     }
 
     /**
-     * Called whenever a InternalExceptionEvent is posted to the bus. Posted when the server cannot be reached
+     * Called whenever a TokenExpiredEvent is posted to the bus. Posted when the token from the login expired.
      *
      * @param event The event information
      */
     @Subscribe
-    public void onEvent(InternalExceptionEvent event) {
-        event.getE().printStackTrace();
-        Snackbar.make(findViewById(R.id.root), getString(R.string.toast_internal_error), Snackbar.LENGTH_LONG).show();
+    public void onEvent(TokenExpiredEvent event) {
+        Toast.makeText(this, "The login token has expired. Getting a new one.", Toast.LENGTH_LONG).show();
+        login();
     }
 
+    @Override
+    public void onResume() {
+        if(!EventBus.getDefault().isRegistered(this)) {
+            EventBus.getDefault().register(this);
+        }
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        EventBus.getDefault().unregister(this);
+        super.onPause();
+    }
 }

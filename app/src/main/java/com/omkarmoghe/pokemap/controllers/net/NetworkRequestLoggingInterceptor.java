@@ -25,7 +25,7 @@ public  class NetworkRequestLoggingInterceptor implements Interceptor {
     private final String RESPONSE_BODY_LOG = "Response body:\n{0}\n";
 
     @Override
-    public Response intercept(Interceptor.Chain chain) throws IOException {
+    public Response intercept(Chain chain) throws IOException {
         final Request request = chain.request();
 
         // Log request
@@ -55,8 +55,6 @@ public  class NetworkRequestLoggingInterceptor implements Interceptor {
             copy.body().writeTo(buffer);
             return buffer.readUtf8();
         } catch (final IOException e) {
-            e.printStackTrace();
-            Log.e(TAG, "Failed to convert request body to string via convertRequestBodyToString(). Raised: " + e.getMessage());
             return null;
         }
     }

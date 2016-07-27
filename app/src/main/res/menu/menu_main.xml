@@ -2,10 +2,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".views.MainActivity">
+    <item android:id="@+id/action_map_type" android:orderInCategory="200"
+        android:title="@string/action_map_type" app:showAsAction="never" />
+    <!--<item android:id="@+id/action_map_satellite" android:orderInCategory="200"-->
+        <!--android:title="@string/action_map_satellite" app:showAsAction="never" />-->
+    <!--<item android:id="@+id/action_map_terrain" android:orderInCategory="200"-->
+        <!--android:title="@string/action_map_terrain" app:showAsAction="never" />-->
     <item android:id="@+id/action_settings" android:orderInCategory="100"
         android:title="@string/action_settings" app:showAsAction="never" />
-    <item android:id="@+id/action_clear" android:orderInCategory="100"
-        android:title="@string/action_clearmap" app:showAsAction="never" />
-    <item android:id="@+id/action_logout" android:orderInCategory="300"
-        android:title="@string/action_logout" app:showAsAction="never" />
+    <item android:id="@+id/action_reset_from_current_position" android:orderInCategory="200"
+        android:title="@string/action_reset_from_current_position" app:showAsAction="never" />
+    <item android:id="@+id/action_reset_from_marker_position" android:orderInCategory="200"
+        android:title="@string/action_reset_from_marker_position" app:showAsAction="never" />
+    <item android:id="@+id/action_filter" android:orderInCategory="200"
+        android:title="@string/action_filter" app:showAsAction="never" />
+    <item android:id="@+id/action_remove_search_point" android:orderInCategory="200"
+        android:title="@string/action_remove_search_point" app:showAsAction="never" />
+    <item android:id="@+id/action_clear_markers" android:orderInCategory="200"
+        android:title="@string/action_clear_markers" app:showAsAction="never" />
 </menu>

@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 
 import com.omkarmoghe.pokemap.controllers.map.LocationManager;
 import com.omkarmoghe.pokemap.controllers.net.NianticManager;
+import com.omkarmoghe.pokemap.views.map.MapWrapperFragment;
 
 /**
  * Created by vanshilshah on 19/07/16.
@@ -27,6 +28,10 @@ public class BaseActivity extends AppCompatActivity {
     public void onResume(){
         super.onResume();
         locationManager.onResume();
+        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if(mwp!=null){
+            mwp.registerEventBus();
+        }
         if(locationListener != null){
             locationManager.register(locationListener);
         }
@@ -35,6 +40,11 @@ public class BaseActivity extends AppCompatActivity {
     @Override
     public void onPause(){
         LocationManager.getInstance(this).onPause();
+//        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+//        if(mwp!=null){
+//            mwp.setLocation(null);
+//            mwp.setStaticLocation(null);
+//        }
         if(locationListener != null){
             locationManager.unregister(locationListener);
         }

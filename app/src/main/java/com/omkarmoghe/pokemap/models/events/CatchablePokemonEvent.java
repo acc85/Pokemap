@@ -3,43 +3,24 @@ package com.omkarmoghe.pokemap.models.events;
 import com.pokegoapi.api.map.pokemon.CatchablePokemon;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Jon on 7/23/2016.
  */
 public class CatchablePokemonEvent implements IEvent {
 
-    private List<CatchablePokemon> catchablePokemon;
-    private double lat;
-    private double longitude;
+    private Map<String,CatchablePokemon> catchablePokemon;
 
-    public CatchablePokemonEvent(List<CatchablePokemon> catchablePokemon, double lat, double longitude) {
+    public CatchablePokemonEvent(Map<String, CatchablePokemon> catchablePokemon) {
         this.catchablePokemon = catchablePokemon;
-        this.lat = lat;
-        this.longitude = longitude;
     }
 
-    public List<CatchablePokemon> getCatchablePokemon() {
+    public Map<String, CatchablePokemon> getCatchablePokemon() {
         return catchablePokemon;
     }
 
-    public void setCatchablePokemon(List<CatchablePokemon> catchablePokemon) {
+    public void setCatchablePokemon(Map<String, CatchablePokemon> catchablePokemon) {
         this.catchablePokemon = catchablePokemon;
-    }
-
-    public double getLat() {
-        return lat;
-    }
-
-    public void setLat(double lat) {
-        this.lat = lat;
-    }
-
-    public double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(double longitude) {
-        this.longitude = longitude;
     }
 }
