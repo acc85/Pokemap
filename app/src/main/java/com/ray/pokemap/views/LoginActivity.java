@@ -33,6 +33,7 @@ import com.ray.pokemap.controllers.app_preferences.PokemapSharedPreferences;
 import com.ray.pokemap.controllers.net.GoogleManager;
 import com.ray.pokemap.controllers.net.GoogleService;
 import com.ray.pokemap.controllers.net.NianticManager;
+import com.ray.pokemap.models.login.GoogleLoginInfo;
 
 /**
  * A login screen that offers login via username/password. And a Google Sign in
@@ -90,7 +91,8 @@ public class LoginActivity extends AppCompatActivity{
 
         mGoogleLoginListener = new GoogleManager.LoginListener() {
             @Override
-            public void authSuccessful(final String authToken) {
+            public void authSuccessful(final String authToken, String refreshToken) {
+                GoogleLoginInfo info = new GoogleLoginInfo(authToken, refreshToken);
                 View view = getLayoutInflater().inflate(R.layout.google_auth_remmeber_me_layout,null);
                 final CheckBox rememberMeCheckbox = (CheckBox)view.findViewById(R.id.google_remember_me);
                 new AlertDialog.Builder(LoginActivity.this)
@@ -109,6 +111,9 @@ public class LoginActivity extends AppCompatActivity{
                             }
                         }).create()
                         .show();
+//                Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
+//                mPref.setLoginInfo(info);
+//                mNianticManager.setLoginInfo(LoginActivity.this, info, mNianticAuthListener);
             }
 
             @Override
