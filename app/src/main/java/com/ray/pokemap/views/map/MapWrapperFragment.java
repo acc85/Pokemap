@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.location.Address;
@@ -50,9 +51,9 @@ import com.ray.pokemap.controllers.app_preferences.PokemapSharedPreferences;
 import com.ray.pokemap.controllers.map.LocationManager;
 import com.ray.pokemap.controllers.net.NianticManager;
 import com.ray.pokemap.models.events.CatchablePokemonEvent;
+import com.ray.pokemap.models.events.PokeStopsEvent;
 import com.ray.pokemap.models.events.PokemonMarker;
 import com.ray.pokemap.models.events.PokestopMarker;
-import com.ray.pokemap.models.events.PokestopsEvent;
 import com.google.maps.android.SphericalUtil;
 import com.ray.pokemap.util.PokemonIdUtils;
 
@@ -95,6 +96,8 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
 
     private Map<String, CatchablePokemon> persistentPokemonMarkerMap;
 
+    private boolean processingPokeStops;
+
     private int STEPS = 100;
 
     private int x = 0;
@@ -117,6 +120,8 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     private Map<String, PokemonMarker> markerList = new HashMap<>();
     private HashMap<String, PokestopMarker> pokestopsList = new HashMap<>();
     private PokemapSharedPreferences mPref;
+
+    private SharedPreferences prefs;
     private Handler countDownHandler;
 
     public MapWrapperFragment() {
@@ -469,18 +474,27 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
      * @param event The event information
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEvent(PokestopsEvent event) {
-//        setPokestopsMarkers(event.getPokestops());
+    public void onEvent(PokeStopsEvent event) {
+//        if(!processingPokeStops) {
+//            processingPokeStops = true;
+//            setPokestopsMarkers(event.getPokestops());
+//            processingPokeStops = false;
+//        }
+
     }
 
 
     private void setPokestopsMarkers(final Map<String, Pokestop> pokestops) {
         if (mGoogleMap != null) {
-            if (pokestops != null && mPref.getShowPokestops()) {
+            if (pokestops != null && mPref.getShowPokeStops()) {
                 int pstopID = getResources().getIdentifier("pstop", "drawable", getActivity().getPackageName());
                 int pstopLuredID = getResources().getIdentifier("pstop_lured", "drawable", getActivity().getPackageName());
                 for (String id : pokestops.keySet()) {
-                    if (!pokestopsList.containsKey(id)) {
+                    if (pokestopsList.containsKey(id)) {
+                        PokestopMarker pokestopMarker = pokestopsList.get(id);
+                        Marker pokeStopMarker = pokestopMarker.getMarker();
+                        pokeStopMarker.setIcon(BitmapDescriptorFactory.fromResource(pokestops.get(id).hasLurePokemon() ? pstopLuredID : pstopID));
+                    }else {
                         Pokestop pokestop = pokestops.get(id);
                         Marker marker = mGoogleMap.addMarker(new MarkerOptions()
                                 .position(new LatLng(pokestop.getLatitude(), pokestop.getLongitude()))
@@ -717,16 +731,18 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     @Override
     public boolean onMarkerClick(final Marker marker) {
         long time = 0L;
+        boolean isPokemonMarker = false;
         if (userSelectedPositionMarker != null && marker.getId().equals(userSelectedPositionMarker.getId())) {
             return true;
         }
         for (String o : markerList.keySet()) {
             if (markerList.get(o).getMarker().getPosition().equals(marker.getPosition())) {
                 time = markerList.get(o).getPokemon().getExpirationTimestampMs();
+                isPokemonMarker = true;
             }
         }
         final long millisLeft = time - System.currentTimeMillis();
-        if (getDurationBreakdown(millisLeft).equals(EXPIRED)) {
+        if (getDurationBreakdown(millisLeft).equals(EXPIRED) && isPokemonMarker) {
             marker.setVisible(false);
             marker.remove();
         }

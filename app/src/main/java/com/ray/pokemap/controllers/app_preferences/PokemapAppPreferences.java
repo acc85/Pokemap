@@ -82,7 +82,7 @@ public interface PokemapAppPreferences {
 
     int getServiceRefreshRate();
 
-    boolean getShowPokestops();
+    boolean getShowPokeStops();
     boolean getShowGyms();
 
     int getTrackingType();

@@ -7,11 +7,11 @@ import java.util.Map;
 /**
  * Created by socrates on 7/23/2016.
  */
-public class PokestopsEvent implements IEvent {
+public class PokeStopsEvent implements IEvent {
 
     private Map<String,Pokestop> pokestops;
 
-    public PokestopsEvent(Map<String, Pokestop> catchablePokemon) {
+    public PokeStopsEvent(Map<String, Pokestop> catchablePokemon) {
         this.pokestops = catchablePokemon;
     }
 

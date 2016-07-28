@@ -147,7 +147,7 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     }
 
     @Override
-    public boolean getShowPokestops() {
+    public boolean getShowPokeStops() {
         return sharedPreferences.getBoolean(SHOW_POKESTOPS, false);
     }
 

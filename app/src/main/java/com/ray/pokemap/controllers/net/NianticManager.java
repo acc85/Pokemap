@@ -7,10 +7,12 @@ import com.google.gson.GsonBuilder;
 import com.ray.pokemap.models.events.CatchablePokemonEvent;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.ray.pokemap.models.events.LoginEventResult;
+import com.ray.pokemap.models.events.PokeStopsEvent;
 import com.ray.pokemap.models.events.ServerUnreachableEvent;
 import com.ray.pokemap.models.events.TokenExpiredEvent;
 import com.pokegoapi.api.PokemonGo;
@@ -289,16 +291,43 @@ public class NianticManager {
                 try {
                     mPokemonGo.setLocation(lat, longitude, alt);
                     Map<String, CatchablePokemon> pokemonMapTable = new HashMap<String, CatchablePokemon>();
-                    Map<String, Pokestop> pokeStopsMapTable = new HashMap<String, Pokestop>();
                     for(CatchablePokemon c: mPokemonGo.getMap().getCatchablePokemon()){
                         pokemonMapTable.put(c.getSpawnPointId(),c);
                     }
 
+//                    final List<Pokestop> pokestops = new ArrayList<Pokestop>();
+//                    pokestops.addAll(mPokemonGo.getMap().getMapObjects().getPokestops());
+//                            HandlerThread thread = new HandlerThread("Niantic Manager Second Thread");
+//                    thread.start();
+//                    new Handler(thread.getLooper()).post(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            try {
+//
+//                                Map<String, Pokestop> pokeStopsMapTable = new HashMap<String, Pokestop>();
+//                                for(Pokestop p: pokestops){
+//                                    pokeStopsMapTable.put(p.getDetails().getId(),p);
+//                                }
+//                                EventBus.getDefault().post(new PokeStopsEvent(pokeStopsMapTable));
+//                                pokestops.clear();
+//                            } catch (LoginFailedException e) {
+//                                EventBus.getDefault().post(new TokenExpiredEvent()); //Because we aren't coming from a log in event, the token must have expired.
+//                            } catch (RemoteServerException e) {
+//                                EventBus.getDefault().post(new ServerUnreachableEvent(e));
+//                            } catch(NullPointerException npe){
+//                                EventBus.getDefault().post(new PokeStopsEvent(null));
+//                            }
+//                        }
+//                    });
+//                    for(Pokestop p: mPokemonGo.getMap().getMapObjects().getPokestops()){
+//                        pokeStopsMapTable.put(p.getDetails().getId(),p);
+//                    }
 //                    for(Pokestop p: mPokemonGo.getMap().getMapObjects().getPokestops()){
 //                        pokeStopsMapTable.put(p.getDetails().getId(),p);
 //                    }
 
                     EventBus.getDefault().post(new CatchablePokemonEvent(pokemonMapTable));
+//                    System.out.println("event");
 //                    EventBus.getDefault().post(new PokestopsEvent(pokeStopsMapTable));
                 } catch (LoginFailedException e) {
                     EventBus.getDefault().post(new TokenExpiredEvent()); //Because we aren't coming from a log in event, the token must have expired.
@@ -309,6 +338,30 @@ public class NianticManager {
                 }
             }
         });
+
+
+//        new Handler().post(new Thread() {
+//            @Override
+//            public void run() {
+//                try {
+//
+//                    Map<String, Pokestop> pokeStopsMapTable = new HashMap<String, Pokestop>();
+//                    List<Pokestop> pokestops = new ArrayList<Pokestop>();
+//                    pokestops.addAll(mPokemonGo.getMap().getMapObjects().getPokestops());
+//                    for(Pokestop p: pokestops){
+//                        pokeStopsMapTable.put(p.getDetails().getId(),p);
+//                    }
+//                    EventBus.getDefault().post(new PokeStopsEvent(pokeStopsMapTable));
+//                    pokestops.clear();
+//                } catch (LoginFailedException e) {
+//                    EventBus.getDefault().post(new TokenExpiredEvent()); //Because we aren't coming from a log in event, the token must have expired.
+//                } catch (RemoteServerException e) {
+//                    EventBus.getDefault().post(new ServerUnreachableEvent(e));
+//                } catch(NullPointerException npe){
+//                    EventBus.getDefault().post(new PokeStopsEvent(null));
+//                }
+//            }
+//        });
     }
 
 }

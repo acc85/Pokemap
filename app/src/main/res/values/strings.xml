@@ -33,9 +33,9 @@
 
     <string name="pref_cat_general">General</string>
     <string name="pref_pokestops_title">Show Pokéstops</string>
-    <string name="pref_pokestops_key">pokestops_checkbox</string>
+    <string name="pref_pokestops_key">show_pokestops</string>
     <string name="pref_gyms_title">Show Gyms</string>
-    <string name="pref_gyms_key">gyms_checkbox</string>
+    <string name="pref_gyms_key">show_gyms</string>
 
     <string name="toast_credentials">Can\'t login. Please check your credentials</string>
     <string name="title_activity_poke_map">Pokemon Nearby</string>

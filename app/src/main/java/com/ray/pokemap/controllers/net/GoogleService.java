@@ -6,10 +6,6 @@ import retrofit2.Call;
 import retrofit2.http.POST;
 import retrofit2.http.Url;
 
-/**
- * Created by chris on 7/21/2016.
- */
-
 public interface GoogleService {
 
     @POST
