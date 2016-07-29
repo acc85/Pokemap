@@ -36,6 +36,7 @@ import com.ray.pokemap.R;
 import com.ray.pokemap.controllers.app_preferences.PokemapAppPreferences;
 import com.ray.pokemap.controllers.app_preferences.PokemapSharedPreferences;
 import com.ray.pokemap.controllers.net.GoogleManager;
+import com.ray.pokemap.controllers.net.GoogleService;
 import com.ray.pokemap.controllers.net.NianticManager;
 import com.ray.pokemap.models.events.LoginEventResult;
 import com.ray.pokemap.models.events.LoginFailedEvent;
@@ -64,18 +65,11 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
     private CheckBox mRememberMe;
     private NianticManager mNianticManager;
     private NianticManager.LoginListener mNianticLoginListener;
-    private GoogleManager mGoogleManager;
     private GoogleManager.LoginListener mGoogleLoginListener;
-
-    private String mDeviceCode;
+    private GoogleManager mGoogleManager;
     private PokemapAppPreferences mPref;
     private String token;
-    private String selectedEmail;
-
-    static final int REQUEST_CODE_PICK_ACCOUNT = 1000;
-    private String mEmail;
     private String mScope;
-    private String token1;
 
 
     @Override
@@ -85,7 +79,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         EventBus.getDefault().register(this);
         mNianticManager = NianticManager.getInstance();
         mGoogleManager = GoogleManager.getInstance();
-        mPref = new PokemapSharedPreferences(this);
+        mPref = new PokemapSharedPreferences(getApplicationContext());
 
         setContentView(R.layout.activity_login);
 
@@ -96,6 +90,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
                 showProgress(false);
                 Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
                 mNianticManager.setPTCAuthToken(authToken);
+                mPref.setLoginType(PokemapSharedPreferences.PTC);
                 finishLogin();
             }
 
@@ -109,52 +104,25 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
             }
         };
 
-//        mGoogleLoginListener = new GoogleManager.LoginListener() {
-//            @Override
-//            public void authSuccessful(final String authToken, String refreshToken) {
-////                GoogleLoginInfo info = new GoogleLoginInfo(authToken, refreshToken);
-//                View view = getLayoutInflater().inflate(R.layout.google_auth_remmeber_me_layout, null);
-//                final CheckBox rememberMeCheckbox = (CheckBox) view.findViewById(R.id.google_remember_me);
-//                new AlertDialog.Builder(LoginActivity.this)
-//                        .setView(view)
-//                        .setTitle("Remember Me")
-//                        .setPositiveButton("Done", new DialogInterface.OnClickListener() {
-//                            @Override
-//                            public void onClick(DialogInterface dialogInterface, int i) {
-//                                mPref.setRememberMe(rememberMeCheckbox.isChecked());
-//                                dialogInterface.dismiss();
-//                                showProgress(false);
-//                                mPref.setRememberMeLoginType(1);
-//                                Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
-//                                mPref.setGoogleAuthToken(authToken);
-//                                setGoogleAuthTokenAndFinish();
-//                            }
-//                        }).create()
-//                        .show();
-////                Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
-////                mPref.setLoginInfo(info);
-////                mNianticManager.setLoginInfo(LoginActivity.this, info, mNianticAuthListener);
-//            }
-//
-//            @Override
-//            public void authFailed(String message) {
-//                showProgress(false);
-//                Log.d(TAG, "authFailed() called with: message = [" + message + "]");
-//                mPref.setRememberMe(false);
-//                mPref.setRememberMeLoginType(0);
-//                mPref.setUsername("");
-//                mPref.setPassword("");
-//                Snackbar.make((View) mLoginFormView.getParent(), "Google Login Failed", Snackbar.LENGTH_LONG).show();
-//            }
-//
-//            @Override
-//            public void authRequested(GoogleService.AuthRequest body) {
-//                GoogleAuthActivity.startForResult(LoginActivity.this, REQUEST_USER_AUTH,
-//                        body.getVerificationUrl(), body.getUserCode());
-//                mDeviceCode = body.getDeviceCode();
-//            }
-//        };
 
+        mGoogleLoginListener = new GoogleManager.LoginListener() {
+            @Override
+            public void authSuccessful(String authToken) {
+                System.out.println("logging in");
+                mPref.setGoogleAuthToken(authToken);
+                setGoogleAuthTokenAndFinish();
+            }
+
+            @Override
+            public void authFailed(String message) {
+
+            }
+
+            @Override
+            public void authRequested(GoogleService.AuthRequest body) {
+
+            }
+        };
         //Bold words in Warning
         TextView warning = (TextView) findViewById(R.id.login_warning);
         String text = getString(R.string.login_warning) + " <b>banned</b>.";
@@ -201,12 +169,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         signInButtonGoogle.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mRememberMe.isChecked()) {
-                    mPref.setRememberMe(true);
-                    mPref.setRememberMeLoginType(1);
-                }
-                attemptGoogleLogin();
-//                mGoogleManager.authUser(mGoogleLoginListener);
+                loginWithGoogle();
             }
         });
 
@@ -229,12 +192,37 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
     @Subscribe
     public void onEvent(LoginEventResult result) {
         if (result.isLoggedIn()) {
+            mPref.setPassword(mPasswordView.getText().toString());
+            mPref.setUsername(mUsernameView.getText().toString());
+            if (mRememberMe.isChecked()) {
+                mPref.setRememberMe(true);
+                mPref.setRememberMeLoginType(1);
+            }
 //            Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
             finishLogin();
         } else {
-            setGoogleAuthTokenAndFinish();
 //            Snackbar.make(findViewById(R.id.root), "Not worky.", Snackbar.LENGTH_LONG).show();
         }
+    }
+
+    /**
+     * Called whenever a LoginEventResult is posted to the bus. Originates from LoginTask.java
+     *
+     * @param result Results of a log in attempt
+     */
+    @Subscribe
+    public void onEvent(GoogleLoginEvent result) {
+        System.out.println("google event!");
+        mPref.setPassword(mPasswordView.getText().toString());
+        mPref.setUsername(mUsernameView.getText().toString());
+        if (mRememberMe.isChecked()) {
+            mPref.setRememberMe(true);
+            mPref.setRememberMeLoginType(1);
+        }
+        mPref.setLoginType(PokemapSharedPreferences.GOOGLE);
+
+//            Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
+        finishLogin();
     }
 
 
@@ -245,6 +233,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
      */
     @Subscribe
     public void onEvent(RetryEvent result) {
+        System.out.println("retrying");
         setGoogleAuthTokenAndFinish();
     }
 
@@ -256,6 +245,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
      */
     @Subscribe
     public void onEvent(LoginFailedEvent m) {
+        System.out.println("failed");
 //        Snackbar.make(findViewById(R.id.root), "You have logged in unsuccessfully.", Snackbar.LENGTH_LONG).show();
         new Handler(getMainLooper()).post(new Runnable() {
             @Override
@@ -363,21 +353,15 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         }
     }
 
-    private void attemptGoogleLogin() {
+    private void loginWithGoogle() {
 
         mUsernameView.setError(null);
         mPasswordView.setError(null);
         String username = "";
         String password = "";
-        if (!mPref.getUsername().isEmpty()) {
-            username = mPref.getUsername();
-            password = mPref.getPassword();
-        } else {
-            // Store values at the time of the login attempt.
-            username = mUsernameView.getText().toString();
-            password = mPasswordView.getText().toString();
-        }
-
+        // Store values at the time of the login attempt.
+        username = mUsernameView.getText().toString();
+        password = mPasswordView.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
@@ -403,10 +387,8 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
-            mPref.setPassword(mPasswordView.getText().toString());
-            mPref.setUsername(mUsernameView.getText().toString());
             showProgress(true);
-            googleAuthAttempt(username, password);
+            GoogleManager.getInstance().googleAuthAttempt(username, password, mGoogleLoginListener);
         }
 //        String[] accountTypes = new String[]{"com.google"};
 //        Intent intent = AccountPicker.newChooseAccountIntent(null, null,
@@ -415,12 +397,17 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
     }
 
     private void finishLogin() {
-        EventBus.getDefault().unregister(this);
+        System.out.println("finishing!");
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
         finish();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
+    }
 
     /**
      * Shows the progress UI and hides the login form.

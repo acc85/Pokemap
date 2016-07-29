@@ -25,6 +25,8 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     private static final String SERVICE_REFRESH_KEY = "service_refresh_rate";
     private static final String SHOW_POKESTOPS = "show_pokestops";
     private static final String SHOW_GYMS = "show_gyms";
+    private static final String LOGIN_TYPE = "login_type";
+
 
     public static final int PTC = 0;
     public static final int GOOGLE = 1;
@@ -94,9 +96,11 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     }
 
 
+    @Override
     public void addPokemonToFilteredList(String id){
-        Set<String> filter = sharedPreferences.getStringSet(FILTERED_POKEMON_KEY,new HashSet<String>());
+        Set<String> filter = new HashSet<>(getFilteredPokemon());
         filter.add(id);
+
         setFilteredPokemon(filter);
     }
 
@@ -115,7 +119,7 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
 
 
     public void setFilteredPokemon(Set<String> filteredPokemon){
-        sharedPreferences.edit().putStringSet(FILTERED_POKEMON_KEY, filteredPokemon).apply();
+        sharedPreferences.edit().putStringSet(FILTERED_POKEMON_KEY, new HashSet<>(filteredPokemon)).apply();
     }
 
     public int getSteps(){
@@ -164,5 +168,15 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     @Override
     public void setTrackingType(int trackingType) {
         sharedPreferences.edit().putInt(TRACKING_TYPE, trackingType).apply();
+    }
+
+    @Override
+    public int getLoginType() {
+        return sharedPreferences.getInt(LOGIN_TYPE, 0);
+    }
+
+    @Override
+    public void setLoginType(int loginType) {
+        sharedPreferences.edit().putInt(LOGIN_TYPE, loginType).apply();
     }
 }

@@ -89,4 +89,10 @@ public interface PokemapAppPreferences {
 
     void setTrackingType(int trackingType);
 
+    int getLoginType();
+
+    void setLoginType(int loginType);
+
+    void addPokemonToFilteredList(String pokemonId);
+
 }

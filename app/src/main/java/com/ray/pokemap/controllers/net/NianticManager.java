@@ -24,6 +24,7 @@ import com.pokegoapi.auth.GoogleLogin;
 import com.pokegoapi.auth.PtcLogin;
 import com.pokegoapi.exceptions.LoginFailedException;
 import com.pokegoapi.exceptions.RemoteServerException;
+import com.ray.pokemap.views.GoogleLoginEvent;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -245,18 +246,20 @@ public class NianticManager {
                 try {
                     mAuthInfo = new GoogleLogin(mPoGoClient).login(token);
                     mPokemonGo = new PokemonGo(mAuthInfo, mPoGoClient);
-                    EventBus.getDefault().post(new LoginEventResult(true, mAuthInfo, mPokemonGo));
+                    EventBus.getDefault().post(new GoogleLoginEvent());
                 } catch (LoginFailedException e) {
                     e.printStackTrace();
                     EventBus.getDefault().post(new LoginFailedEvent("Failed to log in"));
                 } catch (RemoteServerException e) {
-                    EventBus.getDefault().post(new LoginEventResult(false, mAuthInfo, mPokemonGo));
+                    EventBus.getDefault().post(new RetryEvent());
                 } catch(NullPointerException npe){
                     EventBus.getDefault().post(new RetryEvent());
                 }
             }
         });
     }
+
+
 
     /**
      * Sets the pokemon trainer club auth token for the auth info also invokes the onLogin callback.

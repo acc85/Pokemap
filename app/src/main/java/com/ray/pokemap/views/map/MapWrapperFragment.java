@@ -47,6 +47,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.pokegoapi.api.map.fort.Pokestop;
 import com.pokegoapi.api.map.pokemon.CatchablePokemon;
 import com.ray.pokemap.R;
+import com.ray.pokemap.controllers.app_preferences.PokemapAppPreferences;
 import com.ray.pokemap.controllers.app_preferences.PokemapSharedPreferences;
 import com.ray.pokemap.controllers.map.LocationManager;
 import com.ray.pokemap.controllers.net.NianticManager;
@@ -119,9 +120,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     private boolean reset;
     private Map<String, PokemonMarker> markerList = new HashMap<>();
     private HashMap<String, PokestopMarker> pokestopsList = new HashMap<>();
-    private PokemapSharedPreferences mPref;
-
-    private SharedPreferences prefs;
+    private PokemapAppPreferences mPref;
     private Handler countDownHandler;
 
     public MapWrapperFragment() {
@@ -194,7 +193,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                 }
             }
         });
-        mPref = new PokemapSharedPreferences(getActivity());
+        mPref = new PokemapSharedPreferences(getActivity().getApplicationContext());
         resetStepsPosition();
         // Inflate the layout for this fragment if the view is not null
         if (mView == null) {
@@ -625,13 +624,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         }
 
         final String finalPokemonIdString = pokemonIdString;
-        filterButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mPref.addPokemonToFilteredList(finalPokemonIdString);
-//                filteredPokemon.add(String.valueOf(finalPokemonIdString));
-            }
-        });
+
 
         final PokemonMarker finalPokemonMarker = pokemonMarker;
         shareLocationButton.setOnClickListener(new View.OnClickListener() {
@@ -704,6 +697,16 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         });
 
         final Dialog dialog = alertDialog.create();
+
+        filterButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mPref.addPokemonToFilteredList(finalPokemonIdString);
+                dialog.dismiss();
+//                filteredPokemon.add(String.valueOf(finalPokemonIdString));
+            }
+        });
+
         dialog.show();
 
         final long finalTime = time;

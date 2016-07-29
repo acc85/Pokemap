@@ -27,6 +27,8 @@ import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
 import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 import com.google.android.gms.maps.GoogleMap;
 import com.ray.pokemap.R;
+import com.ray.pokemap.controllers.net.GoogleManager;
+import com.ray.pokemap.controllers.net.GoogleService;
 import com.ray.pokemap.models.events.LoginEventResult;
 import com.ray.pokemap.models.events.SearchInPosition;
 import com.ray.pokemap.models.events.ServerUnreachableEvent;
@@ -61,7 +63,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         EventBus.getDefault().register(this);
-        pref = new PokemapSharedPreferences(this);
+        pref = new PokemapSharedPreferences(getApplicationContext());
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -360,15 +362,16 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     }
 
     private void login() {
-        if(!pref.getGoogleAuthToken().isEmpty()) {
-            nianticManager.setGoogleAuthToken(pref.getGoogleAuthToken());
-        }else {
-            if (!pref.isUsernameSet() || !pref.isPasswordSet()) {
-                requestLoginCredentials();
-            } else {
-                nianticManager.login(pref.getUsername(), pref.getPassword());
-            }
-        }
+
+//        if(!pref.getGoogleAuthToken().isEmpty()) {
+//            nianticManager.setGoogleAuthToken(pref.getGoogleAuthToken());
+//        }else {
+//            if (!pref.isUsernameSet() || !pref.isPasswordSet()) {
+//                requestLoginCredentials();
+//            } else {
+//                nianticManager.login(pref.getUsername(), pref.getPassword());
+//            }
+//        }
     }
 
     private void requestLoginCredentials() {
@@ -439,10 +442,35 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
      */
     @Subscribe
     public void onEvent(TokenExpiredEvent event) {
-        Toast.makeText(this, "The login token has expired. Getting a new one.", Toast.LENGTH_LONG).show();
-        login();
+        Snackbar.make(findViewById(R.id.root),"The login token has expired. Getting a new one.", Snackbar.LENGTH_SHORT).show();
+//        Toast.makeText(this, , Toast.LENGTH_LONG).show();
+        reloginGoogle();
     }
 
+
+    public void reloginGoogle(){
+        GoogleManager.LoginListener loginListener = new GoogleManager.LoginListener() {
+            @Override
+            public void authSuccessful(String authToken) {
+                MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+                if(mwp!=null){
+                    Snackbar.make(findViewById(R.id.root),"Gathering Map Data.", Snackbar.LENGTH_SHORT).show();
+                    mwp.continueMapInfoGatherer();
+                }
+            }
+
+            @Override
+            public void authFailed(String message) {
+
+            }
+
+            @Override
+            public void authRequested(GoogleService.AuthRequest body) {
+
+            }
+        };
+        GoogleManager.getInstance().reloginGoogleAuth(pref.getUsername(),pref.getPassword(),loginListener);
+    }
     @Override
     public void onResume() {
         if(!EventBus.getDefault().isRegistered(this)) {
