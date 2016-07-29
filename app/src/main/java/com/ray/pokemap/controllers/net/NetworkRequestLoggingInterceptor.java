@@ -29,8 +29,14 @@ public  class NetworkRequestLoggingInterceptor implements Interceptor {
         if(request.method().compareToIgnoreCase("post") == 0)
             Log.d(TAG, MessageFormat.format(REQUEST_BODY_LOG, convertRequestBodyToString(request)));
 
+
+        Request newRequest;
+
+        newRequest = request.newBuilder()
+                .addHeader("User-Agent", "gpsoauth/0.2.0")
+                .build();
         final long requestStart = System.currentTimeMillis();
-        final Response response = chain.proceed(request);
+        final Response response = chain.proceed(newRequest);
         final long requestEnd = System.currentTimeMillis();
         final long responseTime = requestEnd - requestStart;
 

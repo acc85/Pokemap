@@ -2,60 +2,60 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.ray.pokemap">
 
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.USE_CREDENTIALS" />
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+    <uses-permission android:name="android.permission.ACCOUNT_MANAGER" />
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
 
-<application
-    android:allowBackup="true"
-    android:icon="@mipmap/ic_launcher"
-    android:label="@string/app_name"
-    android:supportsRtl="true"
-    android:theme="@style/AppTheme">
-
-    <activity
-        android:name="com.ray.pokemap.views.MainActivity"
-        android:launchMode="singleTask"
-        android:theme="@style/AppTheme.NoActionBar">
-    </activity>
-
-    <activity
-        android:name="com.ray.pokemap.views.LoginActivity">
-    </activity>
-
-    <activity
-        android:name="com.ray.pokemap.views.settings.SettingsActivity"
-        android:launchMode="singleTask"
-        android:parentActivityName="com.ray.pokemap.views.MainActivity"
-        android:theme="@style/AppTheme.NoActionBar" />
-    <activity
-        android:name="com.ray.pokemap.views.GoogleAuthActivity"
-        android:theme="@style/AppTheme.NoActionBar"
-        android:parentActivityName="com.ray.pokemap.views.LoginActivity">
-    </activity>
-
-    <!--
-             use an alias in case we want to change the launch activity later without breaking
-             homescreen shortcuts.  Note must be defined after the targetActivity
-        -->
-    <activity-alias
-        android:name=".Launcher"
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:targetActivity="com.ray.pokemap.views.LoginActivity">
-        <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent-filter>
-    </activity-alias>
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
 
-    <meta-data
-        android:name="com.google.android.gms.version"
-        android:value="@integer/google_play_services_version" />
-    <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyDlTEq3giE68IySxVmphN8_deqgvNcmHdo" />
+        <activity
+            android:name="com.ray.pokemap.views.MainActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
 
-</application>
+        <activity android:name="com.ray.pokemap.views.LoginActivity"></activity>
+
+        <activity
+            android:name="com.ray.pokemap.views.settings.SettingsActivity"
+            android:launchMode="singleTask"
+            android:parentActivityName="com.ray.pokemap.views.MainActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name="com.ray.pokemap.views.GoogleAuthActivity"
+            android:parentActivityName="com.ray.pokemap.views.LoginActivity"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
+
+        <!--
+                 use an alias in case we want to change the launch activity later without breaking
+                 homescreen shortcuts.  Note must be defined after the targetActivity
+            -->
+        <activity-alias
+            android:name=".Launcher"
+            android:label="@string/app_name"
+            android:targetActivity="com.ray.pokemap.views.LoginActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDlTEq3giE68IySxVmphN8_deqgvNcmHdo" />
+
+    </application>
 
 </manifest>

@@ -416,7 +416,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     public void onEvent(SearchInPosition event) {
         Snackbar.make(findViewById(R.id.root), R.string.searching_text, Snackbar.LENGTH_SHORT).show();
         nianticManager.getMapInformation(event.getPosition().latitude, event.getPosition().longitude, 0D);
-    }
+}
 
     /**
      * Called whenever a ServerUnreachableEvent is posted to the bus. Posted when the server cannot be reached
@@ -425,7 +425,11 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
      */
     @Subscribe
     public void onEvent(ServerUnreachableEvent event) {
-        Toast.makeText(this, "Unable to contact the Pokemon GO servers. The servers may be down.", Toast.LENGTH_LONG).show();
+        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if(mwp!=null){
+            mwp.continueMapInfoGatherer();
+        }
+//        Toast.makeText(this, "Unable to contact the Pokemon GO servers. The servers may be down.", Toast.LENGTH_LONG).show();
     }
 
     /**

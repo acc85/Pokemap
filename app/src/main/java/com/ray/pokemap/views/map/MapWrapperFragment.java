@@ -160,6 +160,10 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         }
     }
 
+    public void continueMapInfoGatherer(){
+        NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0.0);
+    }
+
     public void animateCameraToLocaton(LatLng location){
         searchAtMarkedLocation(location);
     }

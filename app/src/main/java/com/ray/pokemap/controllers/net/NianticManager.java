@@ -68,6 +68,11 @@ public class NianticManager {
     private final OkHttpClient mClient;
     private final OkHttpClient mPoGoClient;
     private PokemonGo mPokemonGo;
+    private String AuthURL = "https://android.clients.google.com/auth";
+    private String SERVICE = "audience:server:client_id:848232511240-7so421jotr2609rmqakceuu1luuq0ptb.apps.googleusercontent.com";
+    private String CLIENT_SIG = "321187995bc7cdc2b5fc91b11a96e2baa8602c62";
+
+
 
     public static NianticManager getInstance(){
         return instance;
@@ -120,6 +125,7 @@ public class NianticManager {
                 .build()
                 .create(NianticService.class);
     }
+
 
     public void login(final String username, final String password, final LoginListener loginListener){
         Callback<NianticService.LoginValues> valuesCallback = new Callback<NianticService.LoginValues>() {
