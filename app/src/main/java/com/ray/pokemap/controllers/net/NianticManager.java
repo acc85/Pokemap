@@ -12,7 +12,9 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.ray.pokemap.models.events.LoginEventResult;
+import com.ray.pokemap.models.events.LoginFailedEvent;
 import com.ray.pokemap.models.events.PokeStopsEvent;
+import com.ray.pokemap.models.events.RetryEvent;
 import com.ray.pokemap.models.events.ServerUnreachableEvent;
 import com.ray.pokemap.models.events.TokenExpiredEvent;
 import com.pokegoapi.api.PokemonGo;
@@ -236,6 +238,7 @@ public class NianticManager {
      * @param token - a valid google auth token.
      */
     public void setGoogleAuthToken(@NonNull final String token) {
+        System.out.println("token is:"+token);
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -245,9 +248,11 @@ public class NianticManager {
                     EventBus.getDefault().post(new LoginEventResult(true, mAuthInfo, mPokemonGo));
                 } catch (LoginFailedException e) {
                     e.printStackTrace();
-                    EventBus.getDefault().post(new LoginEventResult(false, mAuthInfo, mPokemonGo));
+                    EventBus.getDefault().post(new LoginFailedEvent("Failed to log in"));
                 } catch (RemoteServerException e) {
                     EventBus.getDefault().post(new LoginEventResult(false, mAuthInfo, mPokemonGo));
+                } catch(NullPointerException npe){
+                    EventBus.getDefault().post(new RetryEvent());
                 }
             }
         });

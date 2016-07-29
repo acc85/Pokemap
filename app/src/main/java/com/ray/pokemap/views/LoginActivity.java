@@ -1,7 +1,5 @@
 package com.ray.pokemap.views;
 
-import android.Manifest;
-import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
@@ -11,14 +9,10 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 
 import android.os.Build;
@@ -37,26 +31,20 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.google.android.gms.auth.GoogleAuthException;
-import com.google.android.gms.auth.GoogleAuthUtil;
-import com.google.android.gms.auth.UserRecoverableAuthException;
-import com.google.android.gms.common.AccountPicker;
 import com.google.android.gms.common.SignInButton;
-import com.pokegoapi.exceptions.LoginFailedException;
 import com.ray.pokemap.R;
 import com.ray.pokemap.controllers.app_preferences.PokemapAppPreferences;
 import com.ray.pokemap.controllers.app_preferences.PokemapSharedPreferences;
 import com.ray.pokemap.controllers.net.GoogleManager;
-import com.ray.pokemap.controllers.net.GoogleService;
 import com.ray.pokemap.controllers.net.NianticManager;
 import com.ray.pokemap.models.events.LoginEventResult;
-import com.ray.pokemap.models.login.GoogleLoginInfo;
+import com.ray.pokemap.models.events.LoginFailedEvent;
+import com.ray.pokemap.models.events.RetryEvent;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 /**
  * A login screen that offers login via username/password. And a Google Sign in
@@ -217,7 +205,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
                     mPref.setRememberMe(true);
                     mPref.setRememberMeLoginType(1);
                 }
-                pickUserAccount();
+                attemptGoogleLogin();
 //                mGoogleManager.authUser(mGoogleLoginListener);
             }
         });
@@ -253,12 +241,29 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
     /**
      * Called whenever a LoginEventResult is posted to the bus. Originates from LoginTask.java
      *
-     * @param e Results of a log in attempt
+     * @param result Results of a log in attempt
      */
     @Subscribe
-    public void onEvent(LoginFailedException e) {
-        Snackbar.make(findViewById(R.id.root), "You have logged in unsuccessfully.", Snackbar.LENGTH_LONG).show();
-        showProgress(false);
+    public void onEvent(RetryEvent result) {
+        setGoogleAuthTokenAndFinish();
+    }
+
+
+    /**
+     * Called whenever a LoginEventResult is posted to the bus. Originates from LoginTask.java
+     *
+     * @param m Results of a log in attempt
+     */
+    @Subscribe
+    public void onEvent(LoginFailedEvent m) {
+//        Snackbar.make(findViewById(R.id.root), "You have logged in unsuccessfully.", Snackbar.LENGTH_LONG).show();
+        new Handler(getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                showProgress(false);
+            }
+        });
+
     }
 
     private void setGoogleAuthTokenAndFinish() {
@@ -358,7 +363,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         }
     }
 
-    private void pickUserAccount() {
+    private void attemptGoogleLogin() {
 
         mUsernameView.setError(null);
         mPasswordView.setError(null);
