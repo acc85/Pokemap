@@ -25,6 +25,7 @@ import com.pokegoapi.auth.PtcLogin;
 import com.pokegoapi.exceptions.LoginFailedException;
 import com.pokegoapi.exceptions.RemoteServerException;
 import com.ray.pokemap.views.GoogleLoginEvent;
+import com.ray.pokemap.views.settings.AutoLoggingFailedEvent;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -238,21 +239,22 @@ public class NianticManager {
      * Sets the google auth token for the auth info also invokes the onLogin callback.
      * @param token - a valid google auth token.
      */
-    public void setGoogleAuthToken(@NonNull final String token) {
-        System.out.println("token is:"+token);
+    public void setGoogleAuthToken(@NonNull final String token, final boolean autoLogging) {
         mHandler.post(new Runnable() {
             @Override
             public void run() {
                 try {
                     mAuthInfo = new GoogleLogin(mPoGoClient).login(token);
                     mPokemonGo = new PokemonGo(mAuthInfo, mPoGoClient);
-                    EventBus.getDefault().post(new GoogleLoginEvent());
+                    EventBus.getDefault().post(new GoogleLoginEvent(autoLogging));
                 } catch (LoginFailedException e) {
                     e.printStackTrace();
-                    EventBus.getDefault().post(new LoginFailedEvent("Failed to log in"));
-                } catch (RemoteServerException e) {
-                    EventBus.getDefault().post(new RetryEvent());
-                } catch(NullPointerException npe){
+                    if(autoLogging){
+                        EventBus.getDefault().post(new AutoLoggingFailedEvent());
+                    }else {
+                        EventBus.getDefault().post(new LoginFailedEvent("Failed to log in"));
+                    }
+                } catch (RemoteServerException | NullPointerException e) {
                     EventBus.getDefault().post(new RetryEvent());
                 }
             }

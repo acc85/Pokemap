@@ -26,6 +26,7 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     private static final String SHOW_POKESTOPS = "show_pokestops";
     private static final String SHOW_GYMS = "show_gyms";
     private static final String LOGIN_TYPE = "login_type";
+    private static final String LAST_KNOWN_WIDGET_Y_POSITION = "last_known_widget_y_position";
 
 
     public static final int PTC = 0;
@@ -58,12 +59,16 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
 
     @Override
     public void setUsername(@NonNull String username) {
-        sharedPreferences.edit().putString(USERNAME_KEY, username).apply();
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(USERNAME_KEY, username).apply();
+        editor.apply();
     }
 
     @Override
     public void setPassword(@NonNull String password) {
-        sharedPreferences.edit().putString(PASSWORD_KEY, password).apply();
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(PASSWORD_KEY, password);
+        editor.apply();
     }
 
     @Override
@@ -100,20 +105,19 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     public void addPokemonToFilteredList(String id){
         Set<String> filter = new HashSet<>(getFilteredPokemon());
         filter.add(id);
-
         setFilteredPokemon(filter);
     }
 
     public String getGoogleAuthToken(){
         return sharedPreferences.getString(GOOGLE_AUTH_TOKEN,"");
-    };
+    }
 
     public void setGoogleAuthToken(String authToken){
         sharedPreferences.edit().putString(GOOGLE_AUTH_TOKEN, authToken).apply();
-    };
+    }
 
     @Override
-    public void setServiceState(@NonNull boolean isEnabled) {
+    public void setServiceState(boolean isEnabled) {
         sharedPreferences.edit().putBoolean(SERVICE_KEY, isEnabled).apply();
     }
 
@@ -123,7 +127,7 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     }
 
     public int getSteps(){
-        return sharedPreferences.getInt(STEPS_KEY,10);
+        return Integer.parseInt(sharedPreferences.getString(STEPS_KEY,"10"));
     }
 
     public void setSteps(int steps){
@@ -133,12 +137,11 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
 
     public int getMapSelectionType(){
         return sharedPreferences.getInt(MAP_TYPE_KEY,0);
-
-    };
+    }
 
     public void setMapSelectionType(int type){
         sharedPreferences.edit().putInt(MAP_TYPE_KEY, type).apply();
-    };
+    }
 
     @Override
     public boolean isServiceEnabled() {
@@ -178,5 +181,15 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     @Override
     public void setLoginType(int loginType) {
         sharedPreferences.edit().putInt(LOGIN_TYPE, loginType).apply();
+    }
+
+    @Override
+    public void setLastKnownWidgetYPosition(int yPosition) {
+        sharedPreferences.edit().putInt(LAST_KNOWN_WIDGET_Y_POSITION, yPosition).apply();
+    }
+
+    @Override
+    public int getLastKnownWidgetYPosition() {
+        return sharedPreferences.getInt(LAST_KNOWN_WIDGET_Y_POSITION, 0);
     }
 }

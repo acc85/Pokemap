@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/detailsContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:weightSum="2">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="60dp"
+        android:background="@drawable/black_rounded_rectangle"
+        android:id="@+id/distanceNav"
+        android:layout_margin="10dp">
+        <TextView
+            android:id="@+id/distanceFromTargetTitle"
+            android:padding="3dp"
+            android:textStyle="bold"
+            android:layout_gravity="center_horizontal"
+            android:text="Distance from Target"
+            android:textColor="@android:color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawableBottom="@drawable/black_line"/>
+        <TextView
+            android:id="@+id/distanceFromTarget"
+            tools:text="test"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="60dp"
+        android:id="@+id/timeNav"
+        android:background="@drawable/black_rounded_rectangle"
+        android:layout_marginEnd="10dp"
+        android:layout_marginTop="10dp">
+        <TextView
+            android:id="@+id/timeToExpirationTitle"
+            android:padding="3dp"
+            android:textStyle="bold"
+            android:layout_gravity="center_horizontal"
+            android:text="Countdown to expiration"
+            android:textColor="@android:color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:drawableBottom="@drawable/black_line"/>
+        <TextView
+            android:id="@+id/timeToExpiration"
+            tools:text="test"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+</LinearLayout>

@@ -19,7 +19,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.Toast;
 
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.places.Place;
@@ -34,7 +33,6 @@ import com.ray.pokemap.models.events.SearchInPosition;
 import com.ray.pokemap.models.events.ServerUnreachableEvent;
 import com.ray.pokemap.models.events.TokenExpiredEvent;
 import com.ray.pokemap.util.PokemonIdUtils;
-import com.ray.pokemap.views.login.RequestCredentialsDialogFragment;
 import com.ray.pokemap.views.map.MapWrapperFragment;
 import com.ray.pokemap.views.settings.SettingsActivity;
 import com.ray.pokemap.controllers.app_preferences.PokemapAppPreferences;
@@ -43,6 +41,7 @@ import com.ray.pokemap.controllers.app_preferences.PokemapSharedPreferences;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -124,13 +123,14 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
             case R.id.action_set_tracker_type:
                 setTrackerType();
                 break;
-
             default:
                 break;
 
         }
         return super.onOptionsItemSelected(item);
     }
+
+
 
     private void setTrackerType(){
         int selection = pref.getTrackingType();
@@ -190,7 +190,8 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         if(mwp!=null && mwp.getMarkerPosition() != null){
             mwp.setToMarkerPosition();
             mwp.resetStepsPosition();
-            login();
+
+//            reLoginGoogle();
         }else{
             Snackbar.make(findViewById(R.id.root), R.string.no_marker_placed_error_text, Snackbar.LENGTH_LONG).show();
         }
@@ -203,7 +204,6 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
             mwp.setStaticLocation(null);
             mwp.resetStepsPosition();
         }
-        login();
     }
 
     private void showMapTypeDialog(){
@@ -235,7 +235,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         filteredPokemonList.setLayoutManager(linearLayoutManager);
-        final Set<String> pokemonList = pref.getFilteredPokemon();
+        final Set<String> pokemonList = new HashSet<>(pref.getFilteredPokemon());
         final List<FilteredPokemonModel> completeListOfPokemon = new LinkedList<>();
         final List<FilteredPokemonModel> filteredPokemonModels = new LinkedList<>();
         final IFilteredPokemonAdapterCallback filteredPokemonAdapterCallback = new IFilteredPokemonAdapterCallback() {
@@ -361,31 +361,6 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         }
     }
 
-    private void login() {
-
-//        if(!pref.getGoogleAuthToken().isEmpty()) {
-//            nianticManager.setGoogleAuthToken(pref.getGoogleAuthToken());
-//        }else {
-//            if (!pref.isUsernameSet() || !pref.isPasswordSet()) {
-//                requestLoginCredentials();
-//            } else {
-//                nianticManager.login(pref.getUsername(), pref.getPassword());
-//            }
-//        }
-    }
-
-    private void requestLoginCredentials() {
-        getSupportFragmentManager().beginTransaction().add(RequestCredentialsDialogFragment.newInstance(
-                new RequestCredentialsDialogFragment.Listener() {
-                    @Override
-                    public void credentialsIntroduced(String username, String password) {
-                        pref.setUsername(username);
-                        pref.setPassword(password);
-                        login();
-                    }
-                }), "request_credentials").commit();
-    }
-
     /**
      * Called whenever a LoginEventResult is posted to the bus. Originates from LoginTask.java
      *
@@ -421,19 +396,19 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         nianticManager.getMapInformation(event.getPosition().latitude, event.getPosition().longitude, 0D);
 }
 
-    /**
-     * Called whenever a ServerUnreachableEvent is posted to the bus. Posted when the server cannot be reached
-     *
-     * @param event The event information
-     */
-    @Subscribe
-    public void onEvent(ServerUnreachableEvent event) {
-        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwp!=null){
-            mwp.continueMapInfoGatherer();
-        }
-//        Toast.makeText(this, "Unable to contact the Pokemon GO servers. The servers may be down.", Toast.LENGTH_LONG).show();
-    }
+//    /**
+//     * Called whenever a ServerUnreachableEvent is posted to the bus. Posted when the server cannot be reached
+//     *
+//     * @param event The event information
+//     */
+//    @Subscribe
+//    public void onEvent(ServerUnreachableEvent event) {
+//        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+//        if(mwp!=null){
+//            mwp.continueMapInfoGatherer();
+//        }
+////        Toast.makeText(this, "Unable to contact the Pokemon GO servers. The servers may be down.", Toast.LENGTH_LONG).show();
+//    }
 
     /**
      * Called whenever a TokenExpiredEvent is posted to the bus. Posted when the token from the login expired.
@@ -442,40 +417,61 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
      */
     @Subscribe
     public void onEvent(TokenExpiredEvent event) {
-        Snackbar.make(findViewById(R.id.root),"The login token has expired. Getting a new one.", Snackbar.LENGTH_SHORT).show();
-//        Toast.makeText(this, , Toast.LENGTH_LONG).show();
-        reloginGoogle();
+        Snackbar.make(findViewById(R.id.root),"Your login session has expired. Re-logging in with saved credentials.", Snackbar.LENGTH_SHORT).show();
+        reLoginGoogle();
     }
 
 
-    public void reloginGoogle(){
-        GoogleManager.LoginListener loginListener = new GoogleManager.LoginListener() {
-            @Override
-            public void authSuccessful(String authToken) {
-                MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-                if(mwp!=null){
-                    Snackbar.make(findViewById(R.id.root),"Gathering Map Data.", Snackbar.LENGTH_SHORT).show();
-                    mwp.continueMapInfoGatherer();
+//    /**
+//     * Called whenever a TokenExpiredEvent is posted to the bus. Posted when the token from the login expired.
+//     *
+//     * @param event The event information
+//     */
+//    @Subscribe
+//    public void onEvent(GoogleLoginEvent event) {
+//        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+//        if (mwp != null) {
+//            Snackbar.make(findViewById(R.id.root), "Gathering Map Data.", Snackbar.LENGTH_SHORT).show();
+//            mwp.continueMapInfoGatherer();
+//        }
+//    }
+
+
+
+    public void reLoginGoogle(){
+        if(!pref.getUsername().isEmpty() && !pref.getPassword().isEmpty()) {
+            GoogleManager.LoginListener loginListener = new GoogleManager.LoginListener() {
+                @Override
+                public void authSuccessful(String authToken) {
+                    pref.setGoogleAuthToken(authToken);
+                    nianticManager.setGoogleAuthToken(authToken, false);
                 }
-            }
 
-            @Override
-            public void authFailed(String message) {
+                @Override
+                public void authFailed(String message) {
 
-            }
+                }
 
-            @Override
-            public void authRequested(GoogleService.AuthRequest body) {
+                @Override
+                public void authRequested(GoogleService.AuthRequest body) {
 
-            }
-        };
-        GoogleManager.getInstance().reloginGoogleAuth(pref.getUsername(),pref.getPassword(),loginListener);
+                }
+            };
+            GoogleManager.getInstance().reloginGoogleAuth(pref.getUsername(), pref.getPassword(), loginListener);
+        }else{
+            pref.setRememberMe(false);
+            Log.d(TAG, "Login failed with credentials:"+pref.getUsername()+", password:"+pref.getPassword());
+            startLoginActivity();
+        }
     }
     @Override
     public void onResume() {
         if(!EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().register(this);
         }
+        Intent intent = new Intent();
+        intent.setAction("STOP");
+        sendBroadcast(intent);
         super.onResume();
     }
 

@@ -23,10 +23,11 @@
 
     <PreferenceCategory android:title="@string/pref_cat_scanning_settings">
         <EditTextPreference
-            android:key="@string/pref_username_key"
+            android:key="@string/pref_steps_key"
             android:title="@string/pref_steps_title"
             android:inputType="number"
-            android:summary="@string/pref_default_steps"/>
+            android:summary="@string/pref_default_steps"
+            android:defaultValue="@string/pref_default_steps"/>
     </PreferenceCategory>
 
 

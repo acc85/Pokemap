@@ -115,7 +115,10 @@ public class GoogleManager {
             @Override
             protected String doInBackground(Void... voids) {
                 token = getToken(username, password);
-                return getSecondToken(token);
+                if (!token.isEmpty()) {
+                    return getSecondToken(token);
+                }
+                return "";
             }
 
             @Override
@@ -123,7 +126,8 @@ public class GoogleManager {
                 super.onPostExecute(token);
                 if (!token.isEmpty()) {
                     loginListener.authSuccessful(token);
-
+                }else{
+                    loginListener.authFailed("Token empty");
                 }
             }
         }.execute();
@@ -131,11 +135,9 @@ public class GoogleManager {
 
     public void reloginGoogleAuth(final String username, final String password, final LoginListener loginListener) {
         new AsyncTask<Void, String, String>() {
-            String token = "";
-
             @Override
             protected String doInBackground(Void... voids) {
-                token = getToken(username, password);
+                String token = getToken(username, password);
                 return getSecondToken(token);
             }
 
@@ -196,12 +198,10 @@ public class GoogleManager {
             }
             in.close();
             urlConnection.disconnect();
-            return token;
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return "";
+        return token;
     }
 
 
@@ -249,12 +249,11 @@ public class GoogleManager {
             }
             in.close();
             urlConnection.disconnect();
-            return auth;
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return "";
+        return auth;
     }
 
 //    public void requestToken(String deviceCode, final LoginListener listener) {

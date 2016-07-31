@@ -1,22 +1,15 @@
 package com.ray.pokemap.views;
 
-import android.accounts.AccountManager;
-import android.accounts.AccountManagerCallback;
-import android.accounts.AccountManagerFuture;
-import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-
-import android.os.Build;
-import android.os.Bundle;
 import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
@@ -41,21 +34,19 @@ import com.ray.pokemap.controllers.net.NianticManager;
 import com.ray.pokemap.models.events.LoginEventResult;
 import com.ray.pokemap.models.events.LoginFailedEvent;
 import com.ray.pokemap.models.events.RetryEvent;
+import com.ray.pokemap.views.settings.AutoLoggingFailedEvent;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
-import java.io.IOException;
-
 /**
  * A login screen that offers login via username/password. And a Google Sign in
  */
-public class LoginActivity extends AppCompatActivity implements AccountManagerCallback<Bundle> {
+public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
 
     private static final int REQUEST_USER_AUTH = 1;
-    private static final int REQUEST_AUTHORIZATION = 1002;
 
     // UI references.
     private AutoCompleteTextView mUsernameView;
@@ -68,8 +59,6 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
     private GoogleManager.LoginListener mGoogleLoginListener;
     private GoogleManager mGoogleManager;
     private PokemapAppPreferences mPref;
-    private String token;
-    private String mScope;
 
 
     @Override
@@ -83,7 +72,6 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
 
         setContentView(R.layout.activity_login);
 
-        mScope = "oauth2:openid email https://www.googleapis.com/auth/userinfo.email";
         mNianticLoginListener = new NianticManager.LoginListener() {
             @Override
             public void authSuccessful(String authToken) {
@@ -108,14 +96,18 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         mGoogleLoginListener = new GoogleManager.LoginListener() {
             @Override
             public void authSuccessful(String authToken) {
-                System.out.println("logging in");
                 mPref.setGoogleAuthToken(authToken);
-                setGoogleAuthTokenAndFinish();
+                mPref.setUsername(mUsernameView.getText().toString());
+                mPref.setPassword(mPasswordView.getText().toString());
+                setGoogleAuthTokenAndFinish(false);
             }
 
             @Override
             public void authFailed(String message) {
-
+                Snackbar.make(findViewById(R.id.login_root_layout), "Login failed, check credentials", Snackbar.LENGTH_SHORT).show();
+                showProgress(false);
+//                Snackbar.make(findViewById(R.id.login_root_layout), "Login failed, retrying", Snackbar.LENGTH_SHORT).show();
+//                mGoogleManager.googleAuthAttempt(mUsernameView.getText().toString(), mPasswordView.getText().toString(), this);
             }
 
             @Override
@@ -169,14 +161,20 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         signInButtonGoogle.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                 loginWithGoogle();
             }
         });
 
+        checkAndPerformAutoLogin();
+    }
+
+    private void checkAndPerformAutoLogin() {
         if (mPref.rememberMe()) {
             showProgress(true);
             if (mPref.getRememberMeLoginType() == PokemapSharedPreferences.GOOGLE) {
-                setGoogleAuthTokenAndFinish();
+                setGoogleAuthTokenAndFinish(true);
             } else {
                 attemptPTCLogin();
             }
@@ -198,10 +196,8 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
                 mPref.setRememberMe(true);
                 mPref.setRememberMeLoginType(1);
             }
-//            Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
             finishLogin();
-        } else {
-//            Snackbar.make(findViewById(R.id.root), "Not worky.", Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -212,16 +208,20 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
      */
     @Subscribe
     public void onEvent(GoogleLoginEvent result) {
-        System.out.println("google event!");
-        mPref.setPassword(mPasswordView.getText().toString());
-        mPref.setUsername(mUsernameView.getText().toString());
+        if(!result.isIsAutoLogin()) {
+            mPref.setPassword(mPasswordView.getText().toString());
+            mPref.setUsername(mUsernameView.getText().toString());
+        }
         if (mRememberMe.isChecked()) {
             mPref.setRememberMe(true);
             mPref.setRememberMeLoginType(1);
         }
         mPref.setLoginType(PokemapSharedPreferences.GOOGLE);
-
-//            Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
+        try {
+            Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
+        }catch (Exception e){
+            //empty
+        }
         finishLogin();
     }
 
@@ -233,8 +233,8 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
      */
     @Subscribe
     public void onEvent(RetryEvent result) {
-        System.out.println("retrying");
-        setGoogleAuthTokenAndFinish();
+        Snackbar.make(findViewById(R.id.login_root_layout), "Server error. Retrying connection", Snackbar.LENGTH_SHORT).show();
+        setGoogleAuthTokenAndFinish(false);
     }
 
 
@@ -245,8 +245,7 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
      */
     @Subscribe
     public void onEvent(LoginFailedEvent m) {
-        System.out.println("failed");
-//        Snackbar.make(findViewById(R.id.root), "You have logged in unsuccessfully.", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(findViewById(R.id.root), "You have failed to log in.", Snackbar.LENGTH_LONG).show();
         new Handler(getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -256,8 +255,30 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
 
     }
 
-    private void setGoogleAuthTokenAndFinish() {
-        mNianticManager.setGoogleAuthToken(mPref.getGoogleAuthToken());
+    /**
+     * Called whenever a LoginEventResult is posted to the bus. Originates from LoginTask.java
+     *
+     * @param a Results of a log in attempt
+     */
+    @Subscribe
+    public void onEvent(AutoLoggingFailedEvent a) {
+        if (!mPref.getUsername().isEmpty() && !mPref.getPassword().isEmpty()) {
+            mGoogleManager.googleAuthAttempt(mPref.getUsername(), mPref.getPassword(), mGoogleLoginListener);
+            Snackbar.make(findViewById(R.id.login_root_layout), "Auto logging failed. Retrying with credentials", Snackbar.LENGTH_SHORT).show();
+        } else {
+            mRememberMe.setChecked(false);
+            new Handler(getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    showProgress(false);
+                }
+            });
+
+        }
+    }
+
+    private void setGoogleAuthTokenAndFinish(boolean autoLogging) {
+        mNianticManager.setGoogleAuthToken(mPref.getGoogleAuthToken(), autoLogging);
     }
 
     @Override
@@ -267,39 +288,10 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
             switch (requestCode) {
                 case REQUEST_USER_AUTH:
                     showProgress(true);
-//                    mGoogleManager.requestToken(mDeviceCode, mGoogleLoginListener);
                     break;
-//                case REQUEST_CODE_PICK_ACCOUNT:
-//                    mEmail = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
-//                    googleAuthAttempt();
-//                    break;
-//                case REQUEST_AUTHORIZATION:
-//                    googleAuthAttempt();
 
             }
         }
-    }
-
-    private void googleAuthAttempt(final String username, final String password) {
-        new AsyncTask<Void, String, String>() {
-            String token = "";
-
-            @Override
-            protected String doInBackground(Void... voids) {
-                token = mGoogleManager.getToken(username, password);
-                return mGoogleManager.getSecondToken(token);
-            }
-
-            @Override
-            protected void onPostExecute(String token) {
-                super.onPostExecute(token);
-                if (!token.isEmpty()) {
-                    showProgress(true);
-                    mPref.setGoogleAuthToken(token);
-                    setGoogleAuthTokenAndFinish();
-                }
-            }
-        }.execute();
     }
 
     /**
@@ -311,8 +303,8 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
         // Reset errors.
         mUsernameView.setError(null);
         mPasswordView.setError(null);
-        String username = "";
-        String password = "";
+        String username;
+        String password;
         if (!mPref.getUsername().isEmpty()) {
             username = mPref.getUsername();
             password = mPref.getPassword();
@@ -357,8 +349,8 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
 
         mUsernameView.setError(null);
         mPasswordView.setError(null);
-        String username = "";
-        String password = "";
+        String username;
+        String password;
         // Store values at the time of the login attempt.
         username = mUsernameView.getText().toString();
         password = mPasswordView.getText().toString();
@@ -388,16 +380,11 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            GoogleManager.getInstance().googleAuthAttempt(username, password, mGoogleLoginListener);
+            mGoogleManager.googleAuthAttempt(username, password, mGoogleLoginListener);
         }
-//        String[] accountTypes = new String[]{"com.google"};
-//        Intent intent = AccountPicker.newChooseAccountIntent(null, null,
-//                accountTypes, false, null, null, null, null);
-//        startActivityForResult(intent, REQUEST_CODE_PICK_ACCOUNT);
     }
 
     private void finishLogin() {
-        System.out.println("finishing!");
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
         finish();
@@ -443,27 +430,6 @@ public class LoginActivity extends AppCompatActivity implements AccountManagerCa
             mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
-    }
-
-    @Override
-    public void run(AccountManagerFuture<Bundle> accountManagerFuture) {
-        Bundle bundle = null;
-        try {
-            bundle = accountManagerFuture.getResult();
-        } catch (OperationCanceledException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (AuthenticatorException e) {
-            e.printStackTrace();
-        }
-
-        // The token is a named value in the bundle. The name of the value
-        // is stored in the constant AccountManager.KEY_AUTHTOKEN.
-        token = bundle.getString(AccountManager.KEY_AUTHTOKEN);
-        System.out.println(token);
-//        mGoogleManager.performTask(selectedEmail,token);
-//        mNianticManager.setGoogleAuthToken(token);
     }
 }
 

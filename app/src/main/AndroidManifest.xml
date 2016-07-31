@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.USE_CREDENTIALS" />
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
     <uses-permission android:name="android.permission.ACCOUNT_MANAGER" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
 
     <application
@@ -34,6 +35,7 @@
             android:name="com.ray.pokemap.views.GoogleAuthActivity"
             android:parentActivityName="com.ray.pokemap.views.LoginActivity"
             android:theme="@style/AppTheme.NoActionBar"></activity>
+        <service android:name=".trackingService.LocationTrackerService"/>
 
         <!--
                  use an alias in case we want to change the launch activity later without breaking

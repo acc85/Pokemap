@@ -72,7 +72,7 @@ public interface PokemapAppPreferences {
      *
      * @param isEnabled Sets if the background service is enabled.
      */
-    void setServiceState(@NonNull boolean isEnabled);
+    void setServiceState(boolean isEnabled);
 
     /**
      *
@@ -94,5 +94,9 @@ public interface PokemapAppPreferences {
     void setLoginType(int loginType);
 
     void addPokemonToFilteredList(String pokemonId);
+
+    void setLastKnownWidgetYPosition(int yPosition);
+
+    int getLastKnownWidgetYPosition();
 
 }

@@ -75,4 +75,5 @@
     <string name="waiting_on_location_text">Waiting on location...</string>
     <string name="parameterised_pokedex_url">http://www.pokemon.com/uk/pokedex/%1$s</string>
     <string name="google_places_search_error">Error occured searching for location</string>
+    <string name="marked_pokemon">Marked Pokemon</string>
 </resources>

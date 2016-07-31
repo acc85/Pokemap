@@ -24,6 +24,10 @@ public class SettingsFragment extends PreferenceFragment {
         final Preference usernamePref = findPreference(getString(R.string.pref_username_key));
         usernamePref.setSummary(pref.getString(getString(R.string.pref_username_key), getString(R.string.pref_default_username)));
 
+        final Preference stepsPref = findPreference(getString(R.string.pref_steps_key));
+        stepsPref.setSummary(pref.getString(getString(R.string.pref_steps_key),getString(R.string.pref_default_steps)));
+
+
         // Create change listener
         listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
@@ -32,8 +36,9 @@ public class SettingsFragment extends PreferenceFragment {
                     usernamePref.setSummary(pref.getString(getString(R.string.pref_username_key), getString(R.string.pref_default_username)));
                 }else if(s.equals(getString(R.string.pref_filtered_pokemon_key))){
 
-                }else if(s.equals(getString(R.string.pref_steps_key))){
-
+                }
+                else if(s.equals(getString(R.string.pref_steps_key))){
+                    stepsPref.setSummary(pref.getString(getString(R.string.pref_steps_key), "100"));
                 }
             }
         };

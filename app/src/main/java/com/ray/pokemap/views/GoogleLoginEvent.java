@@ -8,5 +8,13 @@ import com.ray.pokemap.models.events.IEvent;
 
 public class GoogleLoginEvent implements IEvent {
 
-    public GoogleLoginEvent(){}
+    private boolean mIsAutoLogin;
+
+    public GoogleLoginEvent(boolean isAutoLogin){
+        mIsAutoLogin = isAutoLogin;
+    }
+
+    public boolean isIsAutoLogin() {
+        return mIsAutoLogin;
+    }
 }

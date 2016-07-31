@@ -11,10 +11,20 @@ public class PokemonMarker {
 
     private Marker mMarker;
     private CatchablePokemon mPokemon;
+    private boolean mIsMarked;
 
     public PokemonMarker(Marker marker, CatchablePokemon pokemon) {
         mMarker = marker;
         mPokemon = pokemon;
+        mIsMarked = false;
+    }
+
+    public boolean isIsMarked() {
+        return mIsMarked;
+    }
+
+    public void setIsMarked(boolean mIsMarked) {
+        this.mIsMarked = mIsMarked;
     }
 
     public Marker getMarker() {
