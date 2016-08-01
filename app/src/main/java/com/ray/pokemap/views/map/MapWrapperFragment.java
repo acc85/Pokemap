@@ -307,7 +307,9 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
 
 
     private void searchAtMarkedLocation(LatLng position) {
-        drawMarker(position);
+        if(mPref.getTrackingType() != PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
+            drawMarker(position);
+        }
         //Sending event to MainActivity
 //        SearchInPosition sip = new SearchInPosition();
         if (mMarkerPosition == null) {
