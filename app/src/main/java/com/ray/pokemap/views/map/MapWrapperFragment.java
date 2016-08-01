@@ -739,6 +739,9 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
 
     @Override
     public void onResume() {
+        if(!EventBus.getDefault().isRegistered(this)) {
+            EventBus.getDefault().register(this);
+        }
         super.onResume();
     }
 
