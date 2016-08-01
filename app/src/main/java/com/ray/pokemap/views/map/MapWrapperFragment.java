@@ -72,12 +72,10 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -100,6 +98,8 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     private static final String EXPIRED = "Expired";
     private static final int COUNTDOWN_HANDLER_ID = 1001;
     public static final int TYPE_CHECK_HANDLER_ID = 1021;
+    public static final int TIMER_HANDLER_ID = 1001;
+    public static final int CHECK_TIMER_HANDLER_ID = 1005;
 
     private Location mStaticLocation;
 
@@ -140,6 +140,9 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     private boolean isAddingToCustomPoints;
     private Set<LatLng> positionsToAdd;
     private Handler typeChecker;
+    private int timer;
+    private Handler timerHandler;
+    private Handler checkTimerHandler;
 
     public MapWrapperFragment() {
 
@@ -344,26 +347,31 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
             customTrackingLocationPoints.clear();
             performFollowTracking();
         } else if (mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
-            resetStepsPosition();
-            if (!getCustomTrackingLocationPoints().isEmpty()) {
-                if(currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()){
-                    currentCustomLocationArrayPos = 0;
-                }
-                Marker markerPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
-                LatLng location = markerPoint.getPosition();
-                mLocationToCheck.setLatitude(location.latitude);
-                mLocationToCheck.setLongitude(location.longitude);
-                markerPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getBlueSearchBitmap()));
-                if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
-                    currentCustomLocationArrayPos = 0;
-                }
-                NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
-            } else {
-                removeSearchLocationMarker();
-                getTrackerTypeHandler().sendEmptyMessage(TYPE_CHECK_HANDLER_ID);
-            }
+            performCustomPointTracking();
         }
 
+    }
+
+    private void performCustomPointTracking() {
+        resetStepsPosition();
+        if (!getCustomTrackingLocationPoints().isEmpty()) {
+            if(currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()){
+                currentCustomLocationArrayPos = 0;
+            }
+            Marker markerPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
+            LatLng location = markerPoint.getPosition();
+            mLocationToCheck.setLatitude(location.latitude);
+            mLocationToCheck.setLongitude(location.longitude);
+            markerPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getBlueSearchBitmap()));
+            if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
+                currentCustomLocationArrayPos = 0;
+            }
+            getSearchLocationMarker(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
+            NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
+        } else {
+            removeSearchLocationMarker();
+            getTrackerTypeHandler().sendEmptyMessage(TYPE_CHECK_HANDLER_ID);
+        }
     }
 
     public Handler getTrackerTypeHandler(){
@@ -611,6 +619,23 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEvent(CatchablePokemonEvent event) {
+        final HandlerThread timerThread = new HandlerThread("TIMER_THREAD");
+        timerThread.start();
+        final int interval = mPref.getScanInterval();
+        timerHandler = new Handler(timerThread.getLooper()){
+            @Override
+            public void handleMessage(Message msg) {
+                timer++;
+                if(timer < interval) {
+                    timerHandler.sendEmptyMessageDelayed(TIMER_HANDLER_ID, 1000);
+                }else {
+                    timerThread.quit();
+                }
+                super.handleMessage(msg);
+            }
+        };
+        timerHandler.sendEmptyMessage(TIMER_HANDLER_ID);
+
         if (event.getCatchablePokemon() != null) {
             persistentPokemonMarkerMap.putAll(event.getCatchablePokemon());
             for (Iterator<CatchablePokemon> iterator = persistentPokemonMarkerMap.values().iterator(); iterator.hasNext(); ) {
@@ -620,26 +645,46 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                     iterator.remove();
                 }
             }
-            if(mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING){
-                if(getCustomTrackingLocationPoints().size() > 1) {
-                    if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
-                        Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[0];
-                        previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
-                    } else {
-                        Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
-                        previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
-                    }
-                    currentCustomLocationArrayPos++;
-                }
-
-            }
             setPokemonMarkers();
             if (currentStep != STEPS2 && STEPS2 / mPref.getSteps() == mPref.getSteps()) {
                 currentStep += 1;
             } else {
                 resetStepsPosition();
             }
-            getNextLocation();
+            final HandlerThread handlerThread = new HandlerThread("TIMER_CHECK_THREAD");
+            handlerThread.start();
+            checkTimerHandler = new Handler(handlerThread.getLooper()){
+                @Override
+                public void handleMessage(Message msg) {
+                    if(timer < interval){
+                        checkTimerHandler.sendEmptyMessage(CHECK_TIMER_HANDLER_ID);
+                    }else {
+                        timer = 0;
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if(mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING){
+                                    if(getCustomTrackingLocationPoints().size() > 1) {
+                                        if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
+                                            Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[0];
+                                            previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
+                                        } else {
+                                            Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
+                                            previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
+                                        }
+                                        currentCustomLocationArrayPos++;
+                                    }
+
+                                }
+                                getNextLocation();
+                            }
+                        });
+                        handlerThread.quit();
+                    }
+                    super.handleMessage(msg);
+                }
+            };
+            checkTimerHandler.sendEmptyMessage(CHECK_TIMER_HANDLER_ID);
         } else {
             mLocation = null;
         }

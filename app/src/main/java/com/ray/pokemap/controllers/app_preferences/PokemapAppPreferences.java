@@ -103,4 +103,8 @@ public interface PokemapAppPreferences {
 
     boolean getIsHidingSearchMarkers();
 
+    void setScanInterval(int interval);
+
+    int getScanInterval();
+
 }

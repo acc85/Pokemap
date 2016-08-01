@@ -80,4 +80,7 @@
     <string name="action_hide_search_markers">Hide search markers</string>
     <string name="action_show_search_markers">Show search markers</string>
     <string name="action_clear_all_search_markers">Clear all search markers</string>
+    <string name="action_scan_interval">Scan Interval In Seconds</string>
+    <string name="input_interval_between_scanning_in_seconds">Input interval between scanning in seconds</string>
+    <string name="input_in_seconds">Input in seconds</string>
 </resources>

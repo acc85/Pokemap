@@ -28,6 +28,7 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     private static final String LOGIN_TYPE = "login_type";
     private static final String LAST_KNOWN_WIDGET_Y_POSITION = "last_known_widget_y_position";
     private static final String HIDE_SEARCH_MARKER = "hide_search_marker";
+    private static final String SCAN_INTERVAL_KEY = "scan_interval_key";
 
 
     public static final int PTC = 0;
@@ -203,5 +204,15 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     @Override
     public boolean getIsHidingSearchMarkers() {
         return sharedPreferences.getBoolean(HIDE_SEARCH_MARKER, false);
+    }
+
+    @Override
+    public void setScanInterval(int interval) {
+        sharedPreferences.edit().putInt(SCAN_INTERVAL_KEY,interval).apply();
+    }
+
+    @Override
+    public int getScanInterval() {
+        return sharedPreferences.getInt(SCAN_INTERVAL_KEY,5);
     }
 }

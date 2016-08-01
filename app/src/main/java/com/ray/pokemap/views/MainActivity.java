@@ -19,6 +19,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.places.Place;
@@ -30,7 +31,6 @@ import com.ray.pokemap.controllers.net.GoogleManager;
 import com.ray.pokemap.controllers.net.GoogleService;
 import com.ray.pokemap.models.events.LoginEventResult;
 import com.ray.pokemap.models.events.SearchInPosition;
-import com.ray.pokemap.models.events.ServerUnreachableEvent;
 import com.ray.pokemap.models.events.TokenExpiredEvent;
 import com.ray.pokemap.util.PokemonIdUtils;
 import com.ray.pokemap.views.map.MapWrapperFragment;
@@ -71,10 +71,10 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         autocompleteFragment.setOnPlaceSelectedListener(this);
         autocompleteFragment.setHint("Search a Location");
 
-        if(pref.getTrackingType() == PokemapSharedPreferences.FOLLOW_TRACKING){
+        if (pref.getTrackingType() == PokemapSharedPreferences.FOLLOW_TRACKING) {
             hideAutoCompleteView();
         }
-        if(getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName()) == null) {
+        if (getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName()) == null) {
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
             transaction.replace(R.id.main_container, MapWrapperFragment.newInstance(), MapWrapperFragment.class.getName())
                     .addToBackStack(null)
@@ -137,6 +137,9 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
             case R.id.action_clear_all_search_search_markers:
                 clearAllSearchMarkers();
                 break;
+            case R.id.action_scan_inverval:
+                setScanInterval();
+                break;
             default:
                 break;
 
@@ -144,45 +147,67 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         return super.onOptionsItemSelected(item);
     }
 
-    private void hideOrShowSearchMarkers(){
+    private void hideOrShowSearchMarkers() {
         boolean isHiding = pref.getIsHidingSearchMarkers();
         pref.hideSearchMarkers(!isHiding);
-        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwp!=null) {
+        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwp != null) {
             mwp.hideSearchMarkers();
         }
         invalidateOptionsMenu();
     }
 
-    private void clearAllSearchMarkers(){
-        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwp!=null) {
+    private void clearAllSearchMarkers() {
+        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwp != null) {
             mwp.clearAllSearchMarkers();
         }
         invalidateOptionsMenu();
     }
 
-
-    private void setTrackerType(){
-        int selection = pref.getTrackingType();
-        CharSequence[] trackingTypes = new CharSequence[]{getString(R.string.location_tracker_text),getString(R.string.follow_tracker_text),getString(R.string.custom_location_points)};
+    private void setScanInterval() {
+        View inputView = getLayoutInflater().inflate(R.layout.set_interval_dialog_layout, null);
+        final EditText intervalInput = (EditText) inputView.findViewById(R.id.intervalInput);
+        intervalInput.setText(String.valueOf(pref.getScanInterval()));
         new AlertDialog.Builder(this)
-                .setSingleChoiceItems(trackingTypes, selection , new DialogInterface.OnClickListener() {
+                .setTitle(getResources().getString(R.string.input_interval_between_scanning_in_seconds))
+                .setView(inputView)
+                .setPositiveButton("Done", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        pref.setScanInterval(Integer.valueOf(intervalInput.getText().toString()));
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                    }
+                }).create().show();
+
+    }
+
+
+    private void setTrackerType() {
+        int selection = pref.getTrackingType();
+        CharSequence[] trackingTypes = new CharSequence[]{getString(R.string.location_tracker_text), getString(R.string.follow_tracker_text), getString(R.string.custom_location_points)};
+        new AlertDialog.Builder(this)
+                .setSingleChoiceItems(trackingTypes, selection, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         pref.setTrackingType(i);
-                        if(i != PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
+                        if (i != PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
                             removeMarkerPoint();
-                        }else{
-                            MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-                            if(mwp!=null && mwp.getMarkerPosition() != null) {
+                        } else {
+                            MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+                            if (mwp != null && mwp.getMarkerPosition() != null) {
                                 mwp.removeSearchMarker();
                             }
                         }
                         dialogInterface.dismiss();
-                        if(i == PokemapSharedPreferences.FOLLOW_TRACKING) {
+                        if (i == PokemapSharedPreferences.FOLLOW_TRACKING) {
                             hideAutoCompleteView();
-                        }else{
+                        } else {
                             showAutoCompleteView();
                         }
                     }
@@ -192,7 +217,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
     private void hideAutoCompleteView() {
         View autoCompleteView = autocompleteFragment.getView();
-        if(autoCompleteView != null){
+        if (autoCompleteView != null) {
             autoCompleteView.setVisibility(View.GONE);
         }
     }
@@ -200,14 +225,14 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
     private void showAutoCompleteView() {
         View autoCompleteView = autocompleteFragment.getView();
-        if(autoCompleteView != null){
+        if (autoCompleteView != null) {
             autoCompleteView.setVisibility(View.VISIBLE);
         }
     }
 
     private void removeMarkerPoint() {
-        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwp!=null && mwp.getMarkerPosition() != null){
+        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwp != null && mwp.getMarkerPosition() != null) {
             mwp.removeSearchMarker();
             mwp.setLocation(null);
             mwp.setStaticLocation(null);
@@ -217,45 +242,45 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     }
 
     private void clearAllMarkers() {
-        MapWrapperFragment mwf = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwf!=null){
+        MapWrapperFragment mwf = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwf != null) {
             mwf.clearAllPokemon();
         }
     }
 
     private void rescanMarkerPosition() {
-        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwp!=null && mwp.getMarkerPosition() != null){
+        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwp != null && mwp.getMarkerPosition() != null) {
             mwp.setToMarkerPosition();
             mwp.resetStepsPosition();
 
 //            reLoginGoogle();
-        }else{
+        } else {
             Snackbar.make(findViewById(R.id.root), R.string.no_marker_placed_error_text, Snackbar.LENGTH_LONG).show();
         }
     }
 
     private void rescanCurrentPosition() {
-        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwp!=null){
+        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwp != null) {
             mwp.setLocation(null);
             mwp.setStaticLocation(null);
             mwp.resetStepsPosition();
         }
     }
 
-    private void showMapTypeDialog(){
-        final MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+    private void showMapTypeDialog() {
+        final MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
         int mapType = 0;
-        if(mwp!=null){
+        if (mwp != null) {
             mapType = mwp.getMapType();
         }
-        CharSequence[] mapChoices = new CharSequence[]{"Satellite","Terrain"};
+        CharSequence[] mapChoices = new CharSequence[]{"Satellite", "Terrain"};
         new AlertDialog.Builder(this)
                 .setSingleChoiceItems(mapChoices, mapType == GoogleMap.MAP_TYPE_HYBRID ? 0 : 1, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        if(mwp != null) {
+                        if (mwp != null) {
                             mwp.setMapType(i == 0 ? GoogleMap.MAP_TYPE_HYBRID : GoogleMap.MAP_TYPE_NORMAL);
                         }
                         pref.setMapSelectionType(i);
@@ -265,11 +290,11 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
                 .show();
     }
 
-    private void showFilterDialog(){
+    private void showFilterDialog() {
         LayoutInflater inflater = getLayoutInflater();
-        final View view = inflater.inflate(R.layout.filtered_pokemon_layout,null);
-        final CheckBox filterAll = (CheckBox)view.findViewById(R.id.filter_select_all);
-        RecyclerView filteredPokemonList = (RecyclerView)view.findViewById(R.id.filteredPokemonList);
+        final View view = inflater.inflate(R.layout.filtered_pokemon_layout, null);
+        final CheckBox filterAll = (CheckBox) view.findViewById(R.id.filter_select_all);
+        RecyclerView filteredPokemonList = (RecyclerView) view.findViewById(R.id.filteredPokemonList);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         filteredPokemonList.setLayoutManager(linearLayoutManager);
@@ -288,7 +313,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
             @Override
             public void checkAll() {
-                for(FilteredPokemonModel f: completeListOfPokemon){
+                for (FilteredPokemonModel f : completeListOfPokemon) {
                     pokemonList.add("-1");
                     pokemonList.add(String.valueOf(f.getPokemonId()));
                     f.setSelected(true);
@@ -297,7 +322,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
             @Override
             public void unCheckAll() {
-                for(FilteredPokemonModel f: completeListOfPokemon){
+                for (FilteredPokemonModel f : completeListOfPokemon) {
                     pokemonList.remove("-1");
                     pokemonList.remove(String.valueOf(f.getPokemonId()));
                     f.setSelected(false);
@@ -305,36 +330,36 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
             }
         };
 
-        for(PokemonIdOuterClass.PokemonId id: PokemonIdOuterClass.PokemonId.values()){
-            if(id != MISSINGNO) {
+        for (PokemonIdOuterClass.PokemonId id : PokemonIdOuterClass.PokemonId.values()) {
+            if (id != MISSINGNO) {
                 try {
-                    FilteredPokemonModel filteredPokemonModel = new FilteredPokemonModel( PokemonIdUtils.getLocalePokemonName(getResources(), id),id.getNumber(),false);
-                    if (pokemonList!=null && pokemonList.contains(String.valueOf(id.getNumber()))) {
+                    FilteredPokemonModel filteredPokemonModel = new FilteredPokemonModel(PokemonIdUtils.getLocalePokemonName(getResources(), id), id.getNumber(), false);
+                    if (pokemonList != null && pokemonList.contains(String.valueOf(id.getNumber()))) {
                         filteredPokemonModel.setSelected(true);
                     }
                     filteredPokemonModels.add(filteredPokemonModel);
                     completeListOfPokemon.add(filteredPokemonModel);
-                }catch(IllegalArgumentException iae){
+                } catch (IllegalArgumentException iae) {
                     //empty
                 }
             }
         }
-        final FilteredPokemonAdapter filteredPokemonAdapter = new FilteredPokemonAdapter(filteredPokemonModels,filteredPokemonAdapterCallback);
+        final FilteredPokemonAdapter filteredPokemonAdapter = new FilteredPokemonAdapter(filteredPokemonModels, filteredPokemonAdapterCallback);
         filteredPokemonList.setAdapter(filteredPokemonAdapter);
         filterAll.setChecked(pokemonList.contains("-1"));
         filterAll.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 filteredPokemonAdapter.checkAllItems(b);
-                if(b) {
+                if (b) {
                     filteredPokemonAdapterCallback.checkAll();
-                }else{
+                } else {
                     filteredPokemonAdapterCallback.unCheckAll();
                 }
             }
         });
 
-        SearchView pokemonSearch = (SearchView)view.findViewById(R.id.filteredPokemon);
+        SearchView pokemonSearch = (SearchView) view.findViewById(R.id.filteredPokemon);
         pokemonSearch.setIconifiedByDefault(false);
         SearchView.OnQueryTextListener queryTextListener = new SearchView.OnQueryTextListener() {
             @Override
@@ -344,7 +369,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                System.out.println("Filteredlist size:"+completeListOfPokemon.size());
+                System.out.println("Filteredlist size:" + completeListOfPokemon.size());
                 filteredPokemonAdapter.updateList(filter(completeListOfPokemon, newText));
                 return true;
             }
@@ -418,11 +443,14 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     }
 
 
-    private void startLoginActivity(){
-        Intent intent = new Intent(this,LoginActivity.class);
+    private void startLoginActivity() {
+        Intent intent = new Intent(this, LoginActivity.class);
         pref.setPassword("");
         startActivity(intent);
-    };
+    }
+
+    ;
+
     /**
      * Called whenever a use whats to search pokemons on a different position
      *
@@ -432,7 +460,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     public void onEvent(SearchInPosition event) {
         Snackbar.make(findViewById(R.id.root), R.string.searching_text, Snackbar.LENGTH_SHORT).show();
         nianticManager.getMapInformation(event.getPosition().latitude, event.getPosition().longitude, 0D);
-}
+    }
 
 //    /**
 //     * Called whenever a ServerUnreachableEvent is posted to the bus. Posted when the server cannot be reached
@@ -455,7 +483,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
      */
     @Subscribe
     public void onEvent(TokenExpiredEvent event) {
-        Snackbar.make(findViewById(R.id.root),"Your login session has expired. Re-logging in with saved credentials.", Snackbar.LENGTH_SHORT).show();
+        Snackbar.make(findViewById(R.id.root), "Your login session has expired. Re-logging in with saved credentials.", Snackbar.LENGTH_SHORT).show();
         reLoginGoogle();
     }
 
@@ -475,9 +503,8 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 //    }
 
 
-
-    public void reLoginGoogle(){
-        if(!pref.getUsername().isEmpty() && !pref.getPassword().isEmpty()) {
+    public void reLoginGoogle() {
+        if (!pref.getUsername().isEmpty() && !pref.getPassword().isEmpty()) {
             GoogleManager.LoginListener loginListener = new GoogleManager.LoginListener() {
                 @Override
                 public void authSuccessful(String authToken) {
@@ -496,15 +523,16 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
                 }
             };
             GoogleManager.getInstance().reloginGoogleAuth(pref.getUsername(), pref.getPassword(), loginListener);
-        }else{
+        } else {
             pref.setRememberMe(false);
-            Log.d(TAG, "Login failed with credentials:"+pref.getUsername()+", password:"+pref.getPassword());
+            Log.d(TAG, "Login failed with credentials:" + pref.getUsername() + ", password:" + pref.getPassword());
             startLoginActivity();
         }
     }
+
     @Override
     public void onResume() {
-        if(!EventBus.getDefault().isRegistered(this)) {
+        if (!EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().register(this);
         }
         Intent intent = new Intent();
@@ -521,8 +549,8 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
     @Override
     public void onPlaceSelected(Place place) {
-        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
-        if(mwp!=null){
+        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwp != null) {
             mwp.animateCameraToLocaton(place.getLatLng());
         }
 
