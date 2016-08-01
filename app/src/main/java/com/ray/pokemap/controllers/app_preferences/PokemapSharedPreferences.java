@@ -27,12 +27,14 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     private static final String SHOW_GYMS = "show_gyms";
     private static final String LOGIN_TYPE = "login_type";
     private static final String LAST_KNOWN_WIDGET_Y_POSITION = "last_known_widget_y_position";
+    private static final String HIDE_SEARCH_MARKER = "hide_search_marker";
 
 
     public static final int PTC = 0;
     public static final int GOOGLE = 1;
     public static final int FOLLOW_TRACKING =1;
     public static final int LOCATION_TRACKING = 0;
+    public static final int CUSOTM_LOCATION_POINTS_TRACKING = 2;
     private static final String TRACKING_TYPE = "tracking_type";
 
     private final SharedPreferences sharedPreferences;
@@ -191,5 +193,15 @@ public final class PokemapSharedPreferences implements PokemapAppPreferences {
     @Override
     public int getLastKnownWidgetYPosition() {
         return sharedPreferences.getInt(LAST_KNOWN_WIDGET_Y_POSITION, 0);
+    }
+
+    @Override
+    public void hideSearchMarkers(boolean hide) {
+        sharedPreferences.edit().putBoolean(HIDE_SEARCH_MARKER, hide).apply();
+    }
+
+    @Override
+    public boolean getIsHidingSearchMarkers() {
+        return sharedPreferences.getBoolean(HIDE_SEARCH_MARKER, false);
     }
 }

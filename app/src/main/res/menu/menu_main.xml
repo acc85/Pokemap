@@ -22,4 +22,8 @@
         android:title="@string/action_clear_markers" app:showAsAction="never" />
     <item android:id="@+id/action_set_tracker_type" android:orderInCategory="200"
         android:title="@string/action_set_tracker_type" app:showAsAction="never" />
+    <item android:id="@+id/action_show_or_hide_search_markers" android:orderInCategory="200"
+        android:title="@string/action_hide_search_markers" app:showAsAction="never" />
+    <item android:id="@+id/action_clear_all_search_search_markers" android:orderInCategory="200"
+        android:title="@string/action_clear_all_search_markers" app:showAsAction="never" />
 </menu>

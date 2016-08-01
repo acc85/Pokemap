@@ -99,4 +99,8 @@ public interface PokemapAppPreferences {
 
     int getLastKnownWidgetYPosition();
 
+    void hideSearchMarkers(boolean hide);
+
+    boolean getIsHidingSearchMarkers();
+
 }

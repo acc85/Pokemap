@@ -96,6 +96,14 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        MenuItem menuItem = menu.findItem(R.id.action_show_or_hide_search_markers);
+        menuItem.setTitle(pref.getIsHidingSearchMarkers() ? getString(R.string.action_show_search_markers) : getString(R.string.action_hide_search_markers));
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         switch (id) {
@@ -123,6 +131,12 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
             case R.id.action_set_tracker_type:
                 setTrackerType();
                 break;
+            case R.id.action_show_or_hide_search_markers:
+                hideOrShowSearchMarkers();
+                break;
+            case R.id.action_clear_all_search_search_markers:
+                clearAllSearchMarkers();
+                break;
             default:
                 break;
 
@@ -130,17 +144,41 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         return super.onOptionsItemSelected(item);
     }
 
+    private void hideOrShowSearchMarkers(){
+        boolean isHiding = pref.getIsHidingSearchMarkers();
+        pref.hideSearchMarkers(!isHiding);
+        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if(mwp!=null) {
+            mwp.hideSearchMarkers();
+        }
+        invalidateOptionsMenu();
+    }
+
+    private void clearAllSearchMarkers(){
+        MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if(mwp!=null) {
+            mwp.clearAllSearchMarkers();
+        }
+        invalidateOptionsMenu();
+    }
 
 
     private void setTrackerType(){
         int selection = pref.getTrackingType();
-        CharSequence[] trackingTypes = new CharSequence[]{getString(R.string.location_tracker_text),getString(R.string.follow_tracker_text)};
+        CharSequence[] trackingTypes = new CharSequence[]{getString(R.string.location_tracker_text),getString(R.string.follow_tracker_text),getString(R.string.custom_location_points)};
         new AlertDialog.Builder(this)
                 .setSingleChoiceItems(trackingTypes, selection , new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         pref.setTrackingType(i);
-                        removeMarkerPoint();
+                        if(i != PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
+                            removeMarkerPoint();
+                        }else{
+                            MapWrapperFragment mwp = (MapWrapperFragment)getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+                            if(mwp!=null && mwp.getMarkerPosition() != null) {
+                                mwp.removeSearchMarker();
+                            }
+                        }
                         dialogInterface.dismiss();
                         if(i == PokemapSharedPreferences.FOLLOW_TRACKING) {
                             hideAutoCompleteView();

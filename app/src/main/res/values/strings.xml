@@ -76,4 +76,8 @@
     <string name="parameterised_pokedex_url">http://www.pokemon.com/uk/pokedex/%1$s</string>
     <string name="google_places_search_error">Error occured searching for location</string>
     <string name="marked_pokemon">Marked Pokemon</string>
+    <string name="custom_location_points">Custom Location Points</string>
+    <string name="action_hide_search_markers">Hide search markers</string>
+    <string name="action_show_search_markers">Show search markers</string>
+    <string name="action_clear_all_search_markers">Clear all search markers</string>
 </resources>
