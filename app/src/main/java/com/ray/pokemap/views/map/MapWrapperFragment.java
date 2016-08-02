@@ -508,6 +508,14 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                     .title("Position Picked")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)));
         }
+        if(searchLocationMarker != null){
+            LatLng location = searchLocationMarker.getPosition();
+            Bitmap drawableBitmap = getBlueSearchBitmap();
+            MarkerOptions markerOptions = new MarkerOptions()
+                    .icon(BitmapDescriptorFactory.fromBitmap(drawableBitmap))
+                    .position(location);
+            searchLocationMarker = mGoogleMap.addMarker(markerOptions);
+        }
         markerList.clear();
     }
 
