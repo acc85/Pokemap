@@ -388,6 +388,9 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         pref.setFilteredPokemon(pokemonList);
+                        if(geMapWrapperFragment()!= null){
+                            geMapWrapperFragment().clearingExpiredAndFilteredPokemonFromMarketList();
+                        }
                     }
                 })
                 .setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
@@ -451,7 +454,6 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
     private void startLoginActivity() {
         Intent intent = new Intent(this, LoginActivity.class);
-        pref.setPassword("");
         startActivity(intent);
     }
 
@@ -508,6 +510,14 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 //        }
 //    }
 
+    public MapWrapperFragment geMapWrapperFragment(){
+        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+        if (mwp != null) {
+            return mwp;
+        }
+        return null;
+    }
+
 
     public void reLoginGoogle() {
         if (!pref.getUsername().isEmpty() && !pref.getPassword().isEmpty()) {
@@ -538,6 +548,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
 
     @Override
     public void onResume() {
+        System.out.println("resuming");
         if (!EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().register(this);
         }

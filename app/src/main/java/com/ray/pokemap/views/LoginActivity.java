@@ -266,6 +266,7 @@ public class LoginActivity extends AppCompatActivity {
             mGoogleManager.googleAuthAttempt(mPref.getUsername(), mPref.getPassword(), mGoogleLoginListener);
             Snackbar.make(findViewById(R.id.login_root_layout), "Auto logging failed. Retrying with credentials", Snackbar.LENGTH_SHORT).show();
         } else {
+            System.out.println("Failed auto login");
             mRememberMe.setChecked(false);
             new Handler(getMainLooper()).post(new Runnable() {
                 @Override

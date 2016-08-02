@@ -165,20 +165,22 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     }
 
     public void startBackgroundService(){
-        BackgroundServiceUtil.getInstance().startBackgroundPokemonService(
-                mStaticLocation,
-                mLocationToCheck,
-                mLocation,
-                STEPS,
-                mPref.getScanInterval(),
-                mPref.getTrackingType(),
-                x,
-                y,
-                dx,
-                dy,
-                currentStep,
-                customTrackingLocationPoints,
-                currentCustomLocationArrayPos);
+        if(mLocationToCheck != null) {
+            BackgroundServiceUtil.getInstance().startBackgroundPokemonService(
+                    mStaticLocation,
+                    mLocationToCheck,
+                    mLocation,
+                    STEPS,
+                    mPref.getScanInterval(),
+                    mPref.getTrackingType(),
+                    x,
+                    y,
+                    dx,
+                    dy,
+                    currentStep,
+                    customTrackingLocationPoints,
+                    currentCustomLocationArrayPos);
+        }
     }
 
     public void addListFromBackgroundService(){
@@ -361,15 +363,18 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         }
         mMarkerPosition.setLongitude(position.longitude);
         mMarkerPosition.setLatitude(position.latitude);
-        mStaticLocation.setLatitude(position.latitude);
-        mStaticLocation.setLongitude(position.longitude);
+        if(mStaticLocation != null) {
+            mStaticLocation.setLatitude(position.latitude);
+            mStaticLocation.setLongitude(position.longitude);
+        }
         if(mLocation != null) {
             mLocation.setLatitude(position.latitude);
             mLocation.setLongitude(position.longitude);
         }
         if (mGoogleMap != null) {
             mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                    new LatLng(mStaticLocation.getLatitude(), mStaticLocation.getLongitude()), 15));
+                    new LatLng(mStaticLocation != null ? mStaticLocation.getLatitude(): mMarkerPosition.getLatitude(),
+                            mStaticLocation != null ?mStaticLocation.getLongitude(): mMarkerPosition.getLongitude()), 15));
         }
         resetStepsPosition();
 //        sip.setPosition(position);
@@ -561,7 +566,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     }
 
 
-    private void clearingExpiredAndFilteredPokemonFromMarketList() {
+    public synchronized void clearingExpiredAndFilteredPokemonFromMarketList() {
         final Set<String> filteredPokemon = mPref.getFilteredPokemon();
         for (Iterator<String> iter = markerList.keySet().iterator(); iter.hasNext(); ) {
             String id = iter.next();

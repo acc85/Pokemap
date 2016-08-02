@@ -3,6 +3,7 @@ package com.ray.pokemap.util;
 import android.location.Location;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -34,6 +35,7 @@ public class BackgroundServiceUtil {
     public static final String EXPIRED = "expired";
     public static final int CHECK_TIMER_HANDLER_ID = 9011;
     public static final int TYPE_CHECK_HANDLER_ID = 9012;
+    public static final int CUSTOM_POINT_TRACKER_HANDLER_ID = 9014;
     private Map<String, CatchablePokemon> persistentPokemonMarkerMap;
     private static BackgroundServiceUtil ourInstance = new BackgroundServiceUtil();
     private Handler timerHandler;
@@ -185,6 +187,7 @@ public class BackgroundServiceUtil {
                     super.handleMessage(msg);
                 }
             };
+            System.out.println("pokemon count size:"+persistentPokemonMarkerMap.size());
             timerHandler.sendEmptyMessage(TIMER_HANDLER_ID);
 
             if (event.getCatchablePokemon() != null) {
@@ -270,14 +273,20 @@ public class BackgroundServiceUtil {
             if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
                 currentCustomLocationArrayPos = 0;
             }
-            Marker markerPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
-            LatLng location = markerPoint.getPosition();
-            mLocationToCheck.setLatitude(location.latitude);
-            mLocationToCheck.setLongitude(location.longitude);
-            if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
-                currentCustomLocationArrayPos = 0;
-            }
-            NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
+            new Handler(Looper.getMainLooper()){
+                @Override
+                public void handleMessage(Message msg) {
+                    Marker markerPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
+                    LatLng location = markerPoint.getPosition();
+                    mLocationToCheck.setLatitude(location.latitude);
+                    mLocationToCheck.setLongitude(location.longitude);
+                    if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
+                        currentCustomLocationArrayPos = 0;
+                    }
+                    NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
+                    super.handleMessage(msg);
+                }
+            }.sendEmptyMessage(CUSTOM_POINT_TRACKER_HANDLER_ID);
         } else {
             getTrackerTypeHandler().sendEmptyMessage(TYPE_CHECK_HANDLER_ID);
         }
