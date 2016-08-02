@@ -1054,6 +1054,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                 public void onClick(View view) {
                     mPref.addPokemonToFilteredList(finalPokemonIdString);
                     dialog.dismiss();
+                    clearingExpiredAndFilteredPokemonFromMarketList();
 //                filteredPokemon.add(String.valueOf(finalPokemonIdString));
                 }
             });
