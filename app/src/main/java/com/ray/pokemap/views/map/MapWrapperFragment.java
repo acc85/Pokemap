@@ -63,6 +63,7 @@ import com.ray.pokemap.models.events.PokestopMarker;
 import com.google.maps.android.SphericalUtil;
 import com.ray.pokemap.models.events.ServerUnreachableEvent;
 import com.ray.pokemap.trackingService.LocationTrackerService;
+import com.ray.pokemap.util.BackgroundServiceUtil;
 import com.ray.pokemap.util.PokemonIdUtils;
 import com.ray.pokemap.views.GoogleLoginEvent;
 
@@ -161,6 +162,46 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
 
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public void startBackgroundService(){
+        BackgroundServiceUtil.getInstance().startBackgroundPokemonService(
+                mStaticLocation,
+                mLocationToCheck,
+                mLocation,
+                STEPS,
+                mPref.getScanInterval(),
+                mPref.getTrackingType(),
+                x,
+                y,
+                dx,
+                dy,
+                currentStep,
+                customTrackingLocationPoints,
+                currentCustomLocationArrayPos);
+    }
+
+    public void addListFromBackgroundService(){
+        BackgroundServiceUtil.getInstance().getPokemonList();
+        persistentPokemonMarkerMap.putAll(BackgroundServiceUtil.getInstance().getPokemonList());
+        if(mPref.getTrackingType() == PokemapSharedPreferences.LOCATION_TRACKING){
+            x = BackgroundServiceUtil.getInstance().getX();
+            y = BackgroundServiceUtil.getInstance().getY();
+            dx = BackgroundServiceUtil.getInstance().getDx();
+            dy = BackgroundServiceUtil.getInstance().getDy();
+            currentStep = BackgroundServiceUtil.getInstance().getCurrentStep();
+            timer = 0;
+            reset = BackgroundServiceUtil.getInstance().isReset();
+            mStaticLocation = BackgroundServiceUtil.getInstance().getStaticLocation();
+            mLocation = BackgroundServiceUtil.getInstance().getLocation();
+            mLocationToCheck = BackgroundServiceUtil.getInstance().getLocationToCheck();
+        }else if(mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING){
+            mStaticLocation = BackgroundServiceUtil.getInstance().getStaticLocation();
+            mLocation = BackgroundServiceUtil.getInstance().getLocation();
+            mLocationToCheck = BackgroundServiceUtil.getInstance().getLocationToCheck();
+            currentCustomLocationArrayPos = BackgroundServiceUtil.getInstance().getCurrentCustomLocationArrayPos();
+        }
+        setPokemonMarkers();
     }
 
     @Override

@@ -4,6 +4,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentTransaction;
@@ -32,6 +35,7 @@ import com.ray.pokemap.controllers.net.GoogleService;
 import com.ray.pokemap.models.events.LoginEventResult;
 import com.ray.pokemap.models.events.SearchInPosition;
 import com.ray.pokemap.models.events.TokenExpiredEvent;
+import com.ray.pokemap.util.BackgroundServiceUtil;
 import com.ray.pokemap.util.PokemonIdUtils;
 import com.ray.pokemap.views.map.MapWrapperFragment;
 import com.ray.pokemap.views.settings.SettingsActivity;
@@ -52,9 +56,11 @@ import static POGOProtos.Enums.PokemonIdOuterClass.PokemonId.MISSINGNO;
 
 public class MainActivity extends BaseActivity implements PlaceSelectionListener {
     private static final String TAG = "Pokemap";
+    public static final int BACKGROUND_HANDLER_ID = 1090;
 
     private PokemapAppPreferences pref;
     private PlaceAutocompleteFragment autocompleteFragment;
+    private Handler backgroundHandler;
 
     //region Lifecycle Methods
     @Override
@@ -538,12 +544,49 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         Intent intent = new Intent();
         intent.setAction("STOP");
         sendBroadcast(intent);
+        if(BackgroundServiceUtil.getInstance().isRunning()) {
+            BackgroundServiceUtil.getInstance().stopService();
+            MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+            if (mwp != null) {
+                mwp.addListFromBackgroundService();
+            }
+        }
         super.onResume();
+    }
+
+    public void removeBackgroundHandler(){
+        if(backgroundHandler != null){
+            backgroundHandler.removeMessages(BACKGROUND_HANDLER_ID);
+        }
+    }
+
+    public Handler getBackgroundHandler(){
+        if(backgroundHandler == null){
+            HandlerThread backgroundThread = new HandlerThread("TEST");
+            backgroundThread.start();
+            backgroundHandler = new Handler(backgroundThread.getLooper()){
+                @Override
+                public void handleMessage(Message msg) {
+                    MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+                    if (mwp != null) {
+                        mwp.startBackgroundService();
+                    }
+                    super.handleMessage(msg);
+                }
+            };
+        }
+        return backgroundHandler;
     }
 
     @Override
     public void onPause() {
         EventBus.getDefault().unregister(this);
+        getBackgroundHandler().sendEmptyMessage(BACKGROUND_HANDLER_ID);
+//        MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
+//        if (mwp != null) {
+//            mwp.startBackgroundService();
+//        }
+//        getBackgroundHandler().sendEmptyMessage(1090);
         super.onPause();
     }
 
