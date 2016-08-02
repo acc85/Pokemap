@@ -216,7 +216,6 @@ public class BackgroundServiceUtil {
                                 }
                             }
                             handlerThread.quit();
-                            System.out.println("size:" + persistentPokemonMarkerMap.size());
                             getNextLocation();
                         }
                         super.handleMessage(msg);
