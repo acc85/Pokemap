@@ -389,7 +389,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
                     public void onClick(DialogInterface dialogInterface, int i) {
                         pref.setFilteredPokemon(pokemonList);
                         if(geMapWrapperFragment()!= null){
-                            geMapWrapperFragment().clearingExpiredAndFilteredPokemonFromMarketList();
+                            geMapWrapperFragment().setPokemonMarkers();
                         }
                     }
                 })

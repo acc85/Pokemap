@@ -635,7 +635,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         }
     }
 
-    private void setPokemonMarkers() {
+    public synchronized void setPokemonMarkers() {
         if (mGoogleMap != null) {
             clearingExpiredAndFilteredPokemonFromMarketList();
             pokemonMarkersToAdd();
