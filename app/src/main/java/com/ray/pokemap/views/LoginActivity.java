@@ -97,8 +97,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void authSuccessful(String authToken) {
                 mPref.setGoogleAuthToken(authToken);
-                mPref.setUsername(mUsernameView.getText().toString());
-                mPref.setPassword(mPasswordView.getText().toString());
+                setUsernameAndPasswordInPref();
                 setGoogleAuthTokenAndFinish(false);
             }
 
@@ -147,8 +146,7 @@ public class LoginActivity extends AppCompatActivity {
                     mPref.setRememberMe(true);
                     mPref.setRememberMeLoginType(0);
                 }
-                mPref.setPassword(mPasswordView.getText().toString());
-                mPref.setUsername(mUsernameView.getText().toString());
+                setUsernameAndPasswordInPref();
                 attemptPTCLogin();
             }
         });
@@ -168,6 +166,17 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         checkAndPerformAutoLogin();
+    }
+
+    private void setUsernameAndPasswordInPref() {
+        String username = mUsernameView.getText().toString();
+        String password = mPasswordView.getText().toString();
+        if(!username.isEmpty()) {
+            mPref.setUsername(mUsernameView.getText().toString());
+        }
+        if(!password.isEmpty()) {
+            mPref.setPassword(mPasswordView.getText().toString());
+        }
     }
 
     private void checkAndPerformAutoLogin() {
@@ -190,8 +199,7 @@ public class LoginActivity extends AppCompatActivity {
     @Subscribe
     public void onEvent(LoginEventResult result) {
         if (result.isLoggedIn()) {
-            mPref.setPassword(mPasswordView.getText().toString());
-            mPref.setUsername(mUsernameView.getText().toString());
+            setUsernameAndPasswordInPref();
             if (mRememberMe.isChecked()) {
                 mPref.setRememberMe(true);
                 mPref.setRememberMeLoginType(1);
@@ -209,8 +217,7 @@ public class LoginActivity extends AppCompatActivity {
     @Subscribe
     public void onEvent(GoogleLoginEvent result) {
         if(!result.isIsAutoLogin()) {
-            mPref.setPassword(mPasswordView.getText().toString());
-            mPref.setUsername(mUsernameView.getText().toString());
+            setUsernameAndPasswordInPref();
         }
         if (mRememberMe.isChecked()) {
             mPref.setRememberMe(true);

@@ -28,7 +28,9 @@ class PtcLoginInfo extends LoginInfo {
     }
 
     public void setPassword(String password) {
-        this.mPassword = password;
+        if(!password.isEmpty()) {
+            this.mPassword = password;
+        }
     }
 
     @Override
