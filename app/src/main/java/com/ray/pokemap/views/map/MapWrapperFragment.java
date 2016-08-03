@@ -66,6 +66,7 @@ import com.ray.pokemap.trackingService.LocationTrackerService;
 import com.ray.pokemap.util.BackgroundServiceUtil;
 import com.ray.pokemap.util.PokemonIdUtils;
 import com.ray.pokemap.views.GoogleLoginEvent;
+import com.ray.pokemap.views.MainActivity;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -673,74 +674,78 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEvent(CatchablePokemonEvent event) {
-        final HandlerThread timerThread = new HandlerThread("TIMER_THREAD");
-        timerThread.start();
-        final int interval = mPref.getScanInterval();
-        timerHandler = new Handler(timerThread.getLooper()){
-            @Override
-            public void handleMessage(Message msg) {
-                timer++;
-                if(timer < interval) {
-                    timerHandler.sendEmptyMessageDelayed(TIMER_HANDLER_ID, 1000);
-                }else {
-                    timerThread.quit();
-                }
-                super.handleMessage(msg);
-            }
-        };
-        timerHandler.sendEmptyMessage(TIMER_HANDLER_ID);
-
-        if (event.getCatchablePokemon() != null) {
-            persistentPokemonMarkerMap.putAll(event.getCatchablePokemon());
-            for (Iterator<CatchablePokemon> iterator = persistentPokemonMarkerMap.values().iterator(); iterator.hasNext(); ) {
-                CatchablePokemon poke = iterator.next();
-                long millisLeft = poke.getExpirationTimestampMs() - System.currentTimeMillis();
-                if (getDurationBreakdown(millisLeft).equals(EXPIRED)) {
-                    iterator.remove();
-                }
-            }
-            setPokemonMarkers();
-            if (currentStep != STEPS2 && STEPS2 / mPref.getSteps() == mPref.getSteps()) {
-                currentStep += 1;
-            } else {
-                resetStepsPosition();
-            }
-            final HandlerThread handlerThread = new HandlerThread("TIMER_CHECK_THREAD");
-            handlerThread.start();
-            checkTimerHandler = new Handler(handlerThread.getLooper()){
+        if(event != null) {
+            final HandlerThread timerThread = new HandlerThread("TIMER_THREAD");
+            timerThread.start();
+            final int interval = mPref.getScanInterval();
+            timerHandler = new Handler(timerThread.getLooper()) {
                 @Override
                 public void handleMessage(Message msg) {
-                    if(timer < interval){
-                        checkTimerHandler.sendEmptyMessage(CHECK_TIMER_HANDLER_ID);
-                    }else {
-                        timer = 0;
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if(mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING){
-                                    if(getCustomTrackingLocationPoints().size() > 1) {
-                                        if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
-                                            Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[0];
-                                            previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
-                                        } else {
-                                            Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
-                                            previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
-                                        }
-                                        currentCustomLocationArrayPos++;
-                                    }
-
-                                }
-                                getNextLocation();
-                            }
-                        });
-                        handlerThread.quit();
+                    timer++;
+                    if (timer < interval) {
+                        timerHandler.sendEmptyMessageDelayed(TIMER_HANDLER_ID, 1000);
+                    } else {
+                        timerThread.quit();
                     }
                     super.handleMessage(msg);
                 }
             };
-            checkTimerHandler.sendEmptyMessage(CHECK_TIMER_HANDLER_ID);
-        } else {
-            mLocation = null;
+            timerHandler.sendEmptyMessage(TIMER_HANDLER_ID);
+
+            if (event.getCatchablePokemon() != null) {
+                persistentPokemonMarkerMap.putAll(event.getCatchablePokemon());
+                for (Iterator<CatchablePokemon> iterator = persistentPokemonMarkerMap.values().iterator(); iterator.hasNext(); ) {
+                    CatchablePokemon poke = iterator.next();
+                    long millisLeft = poke.getExpirationTimestampMs() - System.currentTimeMillis();
+                    if (getDurationBreakdown(millisLeft).equals(EXPIRED)) {
+                        iterator.remove();
+                    }
+                }
+                setPokemonMarkers();
+                if (currentStep != STEPS2 && STEPS2 / mPref.getSteps() == mPref.getSteps()) {
+                    currentStep += 1;
+                } else {
+                    resetStepsPosition();
+                }
+                final HandlerThread handlerThread = new HandlerThread("TIMER_CHECK_THREAD");
+                handlerThread.start();
+                checkTimerHandler = new Handler(handlerThread.getLooper()) {
+                    @Override
+                    public void handleMessage(Message msg) {
+                        if (timer < interval) {
+                            checkTimerHandler.sendEmptyMessage(CHECK_TIMER_HANDLER_ID);
+                        } else {
+                            timer = 0;
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
+                                        if (getCustomTrackingLocationPoints().size() > 1) {
+                                            if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
+                                                Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[0];
+                                                previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
+                                            } else {
+                                                Marker previousPoint = (Marker) getCustomTrackingLocationPoints().values().toArray()[currentCustomLocationArrayPos];
+                                                previousPoint.setIcon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()));
+                                            }
+                                            currentCustomLocationArrayPos++;
+                                        }
+
+                                    }
+                                    getNextLocation();
+                                }
+                            });
+                            handlerThread.quit();
+                        }
+                        super.handleMessage(msg);
+                    }
+                };
+                checkTimerHandler.sendEmptyMessage(CHECK_TIMER_HANDLER_ID);
+            } else {
+                mLocation = null;
+            }
+        }else{
+            ((MainActivity)getActivity()).reLoginGoogle();
         }
 
     }
