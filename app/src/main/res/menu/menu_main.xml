@@ -28,4 +28,17 @@
         android:title="@string/action_hide_search_markers" app:showAsAction="never" />
     <item android:id="@+id/action_clear_all_search_search_markers" android:orderInCategory="200"
         android:title="@string/action_clear_all_search_markers" app:showAsAction="never" />
+    <item android:id="@+id/action_add_custom_point"
+        android:orderInCategory="200"
+        android:title="@string/add_custom_point"
+        android:icon="@drawable/ic_control_point_black_24dp"
+        app:showAsAction="always"/>
+    <item android:id="@+id/action_remove_custom_point" android:orderInCategory="200"
+        android:title="@string/remove_custom_point"
+        android:icon="@drawable/ic_control_point_black_24dp"
+        app:showAsAction="always"/>
+    <item android:id="@+id/action_none_custom_point" android:orderInCategory="200"
+        android:icon="@drawable/ic_not_interested_black_24dp"
+        android:title="@string/do_nothing"
+        app:showAsAction="always" />
 </menu>

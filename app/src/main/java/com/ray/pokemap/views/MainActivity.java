@@ -10,6 +10,7 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -62,6 +63,12 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     private PlaceAutocompleteFragment autocompleteFragment;
     private Handler backgroundHandler;
 
+    public enum POINT_ACTION{
+        ADD,REMOVE,NONE
+    }
+
+    private POINT_ACTION currentPointAction = POINT_ACTION.ADD;
+
     //region Lifecycle Methods
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +95,11 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         }
     }
 
+
+    public POINT_ACTION getCurrentPointAction() {
+        return currentPointAction;
+    }
+
     @Override
     public void onStop() {
         super.onStop();
@@ -98,14 +110,41 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
-        MenuItem menuItem = menu.findItem(R.id.action_show_or_hide_search_markers);
-        menuItem.setTitle(pref.getIsHidingSearchMarkers() ? getString(R.string.action_show_search_markers) : getString(R.string.action_hide_search_markers));
+        MenuItem hideMarkerMenuItem = menu.findItem(R.id.action_show_or_hide_search_markers);
+        MenuItem addMenuItem = menu.findItem(R.id.action_add_custom_point);
+        MenuItem removeMenuItem = menu.findItem(R.id.action_remove_custom_point);
+        MenuItem noPointsActionMenuItem = menu.findItem(R.id.action_none_custom_point);
+        int trackingType = pref.getTrackingType();
+        if(trackingType == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING){
+            addMenuItem.setVisible(true);
+            removeMenuItem.setVisible(true);
+            noPointsActionMenuItem.setVisible(true);
+            if(currentPointAction == POINT_ACTION.ADD) {
+                addMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_control_point_white_24dp));
+                removeMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_remove_circle_outline_black_24dp));
+                noPointsActionMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_not_interested_black_24dp));
+            }else if(currentPointAction == POINT_ACTION.REMOVE){
+                addMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_control_point_black_24dp));
+                removeMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_remove_circle_outline_white_24dp));
+                noPointsActionMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_not_interested_black_24dp));
+            }else{
+                addMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_control_point_black_24dp));
+                removeMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_remove_circle_outline_black_24dp));
+                noPointsActionMenuItem.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_not_interested_white_24dp));
+            }
+        }else{
+            addMenuItem.setVisible(false);
+            removeMenuItem.setVisible(false);
+            noPointsActionMenuItem.setVisible(false);
+        }
+        hideMarkerMenuItem.setTitle(pref.getIsHidingSearchMarkers() ? getString(R.string.action_show_search_markers) : getString(R.string.action_hide_search_markers));
         return true;
     }
 
@@ -146,6 +185,24 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
             case R.id.action_scan_inverval:
                 setScanInterval();
                 break;
+            case R.id.action_add_custom_point:
+                if(currentPointAction != POINT_ACTION.ADD){
+                    currentPointAction = POINT_ACTION.ADD;
+                    invalidateOptionsMenu();
+                }
+                break;
+            case R.id.action_remove_custom_point:
+                if(currentPointAction != POINT_ACTION.REMOVE){
+                    currentPointAction = POINT_ACTION.REMOVE;
+                    invalidateOptionsMenu();
+                }
+                break;
+            case R.id.action_none_custom_point:
+                if(currentPointAction != POINT_ACTION.NONE){
+                    currentPointAction = POINT_ACTION.NONE;
+                    invalidateOptionsMenu();
+                }
+                break;
             default:
                 break;
 
@@ -158,7 +215,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
         pref.hideSearchMarkers(!isHiding);
         MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
         if (mwp != null) {
-            mwp.hideSearchMarkers();
+            mwp.hideCustomSearchMarkers();
         }
         invalidateOptionsMenu();
     }
@@ -204,12 +261,14 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
                         pref.setTrackingType(i);
                         if (i != PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
                             removeMarkerPoint();
+                            currentPointAction = POINT_ACTION.ADD;
                         } else {
                             MapWrapperFragment mwp = (MapWrapperFragment) getSupportFragmentManager().findFragmentByTag(MapWrapperFragment.class.getName());
                             if (mwp != null && mwp.getMarkerPosition() != null) {
                                 mwp.removeSearchMarker();
                             }
                         }
+                        invalidateOptionsMenu();
                         dialogInterface.dismiss();
                         if (i == PokemapSharedPreferences.FOLLOW_TRACKING) {
                             hideAutoCompleteView();
@@ -525,7 +584,7 @@ public class MainActivity extends BaseActivity implements PlaceSelectionListener
                 @Override
                 public void authSuccessful(String authToken) {
                     pref.setGoogleAuthToken(authToken);
-                    nianticManager.setGoogleAuthToken(authToken, false);
+                    nianticManager.setGoogleAuthToken(pref.getUsername(),pref.getPassword(), false);
                 }
 
                 @Override

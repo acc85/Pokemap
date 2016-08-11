@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -47,6 +48,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -74,6 +77,7 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -94,6 +98,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         GoogleMap.OnMapLongClickListener,
         GoogleMap.OnInfoWindowClickListener,
         GoogleMap.OnMarkerClickListener,
+        GoogleMap.OnMapClickListener,
         ActivityCompat.OnRequestPermissionsResultCallback {
 
     //    private static final int LOCATION_PERMISSION_REQUEST = 19;
@@ -145,6 +150,8 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     private int timer;
     private Handler timerHandler;
     private Handler checkTimerHandler;
+    private List<LatLng> movement;
+    private Circle searchCricle;
 
     public MapWrapperFragment() {
 
@@ -218,17 +225,21 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
             EventBus.getDefault().register(this);
         }
         if (mLocationToCheck != null) {
-            getSearchLocationMarker(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
+            drawCatchedPokemonCircle(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
             NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0.0);
         } else if (mStaticLocation != null) {
-            getSearchLocationMarker(new LatLng(mStaticLocation.getLatitude(), mStaticLocation.getLongitude()));
+            drawCatchedPokemonCircle(new LatLng(mStaticLocation.getLatitude(), mStaticLocation.getLongitude()));
             NianticManager.getInstance().getMapInformation(mStaticLocation.getLatitude(), mStaticLocation.getLongitude(), 0.0);
         }
     }
 
     public void continueMapInfoGatherer() {
-        getSearchLocationMarker(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
-        NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0.0);
+        Location locationToScan = mLocationToCheck;
+        if(locationToScan == null) {
+            locationToScan = mStaticLocation;
+        }
+        drawCatchedPokemonCircle(new LatLng(locationToScan.getLatitude(), locationToScan.getLongitude()));
+        NianticManager.getInstance().getMapInformation(locationToScan.getLatitude(), locationToScan.getLongitude(), 0.0);
     }
 
     public void animateCameraToLocaton(LatLng location) {
@@ -242,6 +253,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        mPref = new PokemapSharedPreferences(getActivity().getApplicationContext());
         LocationManager locationManager = LocationManager.getInstance(getContext());
         locationManager.register(new LocationManager.Listener() {
             @Override
@@ -250,6 +262,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                     mLocation = location;
                     mStaticLocation = location;
                     initMap();
+                    resetStepsPosition();
 //                    getSearchLocationMarker(new LatLng(mStaticLocation.getLatitude(), mStaticLocation.getLongitude()));
                     NianticManager.getInstance().getMapInformation(mStaticLocation.getLatitude(), mStaticLocation.getLongitude(), 0.0);
                 } else {
@@ -261,8 +274,6 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                 }
             }
         });
-        mPref = new PokemapSharedPreferences(getActivity().getApplicationContext());
-        resetStepsPosition();
         // Inflate the layout for this fragment if the view is not null
         if (mView == null) {
             mView = inflater.inflate(R.layout.fragment_map_wrapper, container, false);
@@ -311,13 +322,9 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
 
 
     public void resetStepsPosition() {
-        x = 0;
-        y = 0;
-        dx = 0;
-        dy = -1;
         STEPS = mPref.getSteps();
-        STEPS2 = STEPS * STEPS;
         currentStep = 0;
+        movement = generateMovementList();
         reset = true;
     }
 
@@ -413,7 +420,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
             if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
                 currentCustomLocationArrayPos = 0;
             }
-            getSearchLocationMarker(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
+            drawCatchedPokemonCircle(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
             NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
         } else {
             removeSearchLocationMarker();
@@ -432,12 +439,14 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                     if (mPref.getTrackingType() == PokemapSharedPreferences.LOCATION_TRACKING
                             || mPref.getTrackingType() == PokemapSharedPreferences.FOLLOW_TRACKING
                             || (mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING && !getCustomTrackingLocationPoints().isEmpty())) {
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                getNextLocation();
-                            }
-                        });
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    getNextLocation();
+                                }
+                            });
+                        }
                     }
                     else {
                         typeChecker.sendEmptyMessage(TYPE_CHECK_HANDLER_ID);
@@ -465,34 +474,49 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     }
 
     private void performFollowTracking() {
-        getSearchLocationMarker(new LatLng(mLocation.getLatitude(), mLocation.getLongitude()));
+        drawCatchedPokemonCircle(new LatLng(mLocation.getLatitude(), mLocation.getLongitude()));
         NianticManager.getInstance().getMapInformation(mLocation.getLatitude(), mLocation.getLongitude(), 0D);
     }
 
-    private void performLocationTracking() {
+    private List<LatLng> generateMovementList(){
         if (mStaticLocation != null) {
-            if (!reset) {
-                if (x > (-STEPS2 / 2) && x <= STEPS2 / 2 && y > (-STEPS2 / 2) && y <= (STEPS2 / 2)) {
-                    getLocationToCheck().setLatitude(x * 0.0025 + mStaticLocation.getLatitude());
-                    getLocationToCheck().setLongitude(y * 0.0025 + mStaticLocation.getLongitude());
-                    getSearchLocationMarker(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
-                    NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
-                }
-                if (x == y || x < 0 && x == -y || x > 0 && x == 1 - y) {
-                    int currentdx = dx;
-                    int currentdy = dy;
-                    dx = -currentdy;
-                    dy = currentdx;
-                }
-                x += dx;
-                y += dy;
-            } else {
-                reset = false;
-                getSearchLocationMarker(new LatLng(mStaticLocation.getLatitude(), mStaticLocation.getLongitude()));
-                NianticManager.getInstance().getMapInformation(mStaticLocation.getLatitude(), mStaticLocation.getLongitude(), 0D);
+            return MapHelper.getSearchArea(STEPS, new LatLng(mStaticLocation.getLatitude(), mStaticLocation.getLongitude()));
+        }
+        return new ArrayList<LatLng>();
+    }
+
+    private void performLocationTracking() {
+        if(reset) {
+            reset = false;
+            drawCatchedPokemonCircle(new LatLng(mStaticLocation.getLatitude(), mStaticLocation.getLongitude()));
+            NianticManager.getInstance().getMapInformation(mStaticLocation.getLatitude(), mStaticLocation.getLongitude(), 0D);
+        }else {
+            LatLng p = movement.get(currentStep++);
+            getLocationToCheck().setLatitude(p.latitude);
+            getLocationToCheck().setLongitude(p.longitude);
+            drawCatchedPokemonCircle(new LatLng(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude()));
+            NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
+        }
+    }
+
+    private void drawCatchedPokemonCircle(LatLng latLag) {
+        if (mGoogleMap != null) {
+            if(searchCricle == null) {
+                double radiusInMeters = MapHelper.SCAN_RADIUS;
+                int shadeColor = 0x44DCD90D; // fill
+                CircleOptions circleOptions = new CircleOptions()
+                        .center(latLag)
+                        .radius(radiusInMeters).fillColor(shadeColor)
+                        .strokeColor(Color.TRANSPARENT)
+                        .zIndex(MapHelper.LAYER_SCANNED_LOCATIONS);
+                searchCricle = mGoogleMap.addCircle(circleOptions);
+            }else{
+                searchCricle.setCenter(latLag);
             }
         }
     }
+
+
 
     private Location getLocationToCheck() {
         if (mLocationToCheck == null) {
@@ -674,7 +698,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEvent(CatchablePokemonEvent event) {
-        if(event != null) {
+        if(event.getCatchablePokemon() != null) {
             final HandlerThread timerThread = new HandlerThread("TIMER_THREAD");
             timerThread.start();
             final int interval = mPref.getScanInterval();
@@ -702,7 +726,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                     }
                 }
                 setPokemonMarkers();
-                if (currentStep != STEPS2 && STEPS2 / mPref.getSteps() == mPref.getSteps()) {
+                if (currentStep < movement.size()) {
                     currentStep += 1;
                 } else {
                     resetStepsPosition();
@@ -750,7 +774,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
 
     }
 
-    public void hideSearchMarkers(){
+    public void hideCustomSearchMarkers(){
         if(mPref.getIsHidingSearchMarkers()) {
             for (Marker m : getCustomTrackingLocationPoints().values()) {
                 m.setVisible(false);
@@ -868,6 +892,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         settings.setTiltGesturesEnabled(true);
         settings.setMyLocationButtonEnabled(false);
         //Handle long click
+        mGoogleMap.setOnMapClickListener(this);
         mGoogleMap.setOnMapLongClickListener(this);
         mGoogleMap.setOnMarkerClickListener(this);
         mGoogleMap.setMapType(mPref.getMapSelectionType() == 0 ? GoogleMap.MAP_TYPE_HYBRID : GoogleMap.MAP_TYPE_NORMAL);
@@ -882,12 +907,10 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
         if (mPref.getTrackingType() == PokemapSharedPreferences.LOCATION_TRACKING) {
             //Draw user position marker with circle
             searchAtMarkedLocation(position);
-        } else if (mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING) {
-            longClickForCustomPointTracking(position);
         }
     }
 
-    private void longClickForCustomPointTracking(LatLng position) {
+    private void addCustomTrackingPoint(LatLng position) {
         Marker customPointMarker = mGoogleMap.addMarker(new MarkerOptions()
                 .position(new LatLng(position.latitude, position.longitude))
                 .icon(BitmapDescriptorFactory.fromBitmap(getRedSearchBitmap()))
@@ -899,7 +922,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
             getLocationToCheck().setLatitude(position.latitude);
             getLocationToCheck().setLongitude(position.longitude);
             NianticManager.getInstance().getMapInformation(mLocationToCheck.getLatitude(), mLocationToCheck.getLongitude(), 0D);
-            getSearchLocationMarker(new LatLng(position.latitude, position.longitude));
+            drawCatchedPokemonCircle(new LatLng(position.latitude, position.longitude));
             currentCustomLocationArrayPos++;
             if (currentCustomLocationArrayPos >= getCustomTrackingLocationPoints().size()) {
                 currentCustomLocationArrayPos = 0;
@@ -943,10 +966,10 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     @Override
     @SuppressLint("InflateParams")
     public void onInfoWindowClick(final Marker marker) {
-        if(getCustomTrackingLocationPoints().containsKey(marker.getId())){
-            marker.remove();
-            getCustomTrackingLocationPoints().remove(marker.getId());;
-        }else {
+//        if(getCustomTrackingLocationPoints().containsKey(marker.getId())){
+//            marker.remove();
+//            getCustomTrackingLocationPoints().remove(marker.getId());;
+//        }else {
             long time = 0L;
             View view = getActivity().getLayoutInflater().inflate(R.layout.marker_pokemon_info_layout, null);
             ImageButton markButton = (ImageButton) view.findViewById(R.id.mark_button);
@@ -1103,7 +1126,7 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                 }
             };
             countDownHandler.sendEmptyMessage(COUNTDOWN_HANDLER_ID);
-        }
+//        }
 
     }
 
@@ -1139,9 +1162,12 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
                 (searchLocationMarker != null) && marker.getId().equals(searchLocationMarker.getId())) {
             return true;
         }else if(getCustomTrackingLocationPoints().containsKey(marker.getId())){
-            return false;
+            if(getActivity()!=null && ((MainActivity)getActivity()).getCurrentPointAction() == MainActivity.POINT_ACTION.REMOVE){
+                marker.remove();
+                getCustomTrackingLocationPoints().remove(marker.getId());
+            }
+            return true;
         }
-
         for (String o : markerList.keySet()) {
             if (markerList.get(o).getMarker().getPosition().equals(marker.getPosition())) {
                 time = markerList.get(o).getPokemon().getExpirationTimestampMs();
@@ -1160,6 +1186,14 @@ public class MapWrapperFragment extends Fragment implements OnMapReadyCallback,
     public String getMiles(double meters) {
         DecimalFormat df = new DecimalFormat();
         return df.format(meters * 0.00062137).replace("-1", "");
+    }
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+        if (mPref.getTrackingType() == PokemapSharedPreferences.CUSOTM_LOCATION_POINTS_TRACKING &&
+                (getActivity() != null  && ((MainActivity)getActivity()).getCurrentPointAction() == MainActivity.POINT_ACTION.ADD)) {
+            addCustomTrackingPoint(latLng);
+        }
     }
 }
 

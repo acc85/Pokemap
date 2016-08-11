@@ -108,29 +108,30 @@ public class GoogleManager {
     }
 
 
-    public void googleAuthAttempt(final String username, final String password, final LoginListener loginListener) {
-        new AsyncTask<Void, String, String>() {
-            String token = "";
-
-            @Override
-            protected String doInBackground(Void... voids) {
-                token = getToken(username, password);
-                if (!token.isEmpty()) {
-                    return getSecondToken(token);
-                }
-                return "";
-            }
-
-            @Override
-            protected void onPostExecute(String token) {
-                super.onPostExecute(token);
-                if (!token.isEmpty()) {
-                    loginListener.authSuccessful(token);
-                }else{
-                    loginListener.authFailed("Token empty");
-                }
-            }
-        }.execute();
+    public void googleAuthAttempt(final String username, final String password, boolean isAutoLogin) {
+        NianticManager.getInstance().setGoogleAuthToken(username,password,isAutoLogin);
+//        new AsyncTask<Void, String, String>() {
+//            String token = "";
+//
+//            @Override
+//            protected String doInBackground(Void... voids) {
+//                token = getToken(username, password);
+//                if (!token.isEmpty()) {
+//                    return getSecondToken(token);
+//                }
+//                return "";
+//            }
+//
+//            @Override
+//            protected void onPostExecute(String token) {
+//                super.onPostExecute(token);
+//                if (!token.isEmpty()) {
+//                    loginListener.authSuccessful(token);
+//                }else{
+//                    loginListener.authFailed("Token empty");
+//                }
+//            }
+//        }.execute();
     }
 
     public void reloginGoogleAuth(final String username, final String password, final LoginListener loginListener) {

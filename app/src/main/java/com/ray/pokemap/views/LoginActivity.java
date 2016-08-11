@@ -25,6 +25,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.google.android.gms.common.SignInButton;
+import com.pokegoapi.auth.GoogleAutoCredentialProvider;
+import com.pokegoapi.auth.PtcCredentialProvider;
 import com.ray.pokemap.R;
 import com.ray.pokemap.controllers.app_preferences.PokemapAppPreferences;
 import com.ray.pokemap.controllers.app_preferences.PokemapSharedPreferences;
@@ -74,10 +76,9 @@ public class LoginActivity extends AppCompatActivity {
 
         mNianticLoginListener = new NianticManager.LoginListener() {
             @Override
-            public void authSuccessful(String authToken) {
+            public void authSuccessful(PtcCredentialProvider ptcCredentialProvider) {
                 showProgress(false);
-                Log.d(TAG, "authSuccessful() called with: authToken = [" + authToken + "]");
-                mNianticManager.setPTCAuthToken(authToken);
+//                mNianticManager.setPTCAuthToken(ptcCredentialProvider);
                 mPref.setLoginType(PokemapSharedPreferences.PTC);
                 finishLogin();
             }
@@ -218,12 +219,12 @@ public class LoginActivity extends AppCompatActivity {
     public void onEvent(GoogleLoginEvent result) {
         if(!result.isIsAutoLogin()) {
             setUsernameAndPasswordInPref();
+            if (mRememberMe.isChecked()) {
+                mPref.setRememberMe(true);
+                mPref.setRememberMeLoginType(1);
+                mPref.setLoginType(PokemapSharedPreferences.GOOGLE);
+            }
         }
-        if (mRememberMe.isChecked()) {
-            mPref.setRememberMe(true);
-            mPref.setRememberMeLoginType(1);
-        }
-        mPref.setLoginType(PokemapSharedPreferences.GOOGLE);
         try {
             Snackbar.make(findViewById(R.id.root), "You have logged in successfully.", Snackbar.LENGTH_LONG).show();
         }catch (Exception e){
@@ -270,7 +271,7 @@ public class LoginActivity extends AppCompatActivity {
     @Subscribe
     public void onEvent(AutoLoggingFailedEvent a) {
         if (!mPref.getUsername().isEmpty() && !mPref.getPassword().isEmpty()) {
-            mGoogleManager.googleAuthAttempt(mPref.getUsername(), mPref.getPassword(), mGoogleLoginListener);
+            mGoogleManager.googleAuthAttempt(mPref.getUsername(), mPref.getPassword(), true);
             Snackbar.make(findViewById(R.id.login_root_layout), "Auto logging failed. Retrying with credentials", Snackbar.LENGTH_SHORT).show();
         } else {
             System.out.println("Failed auto login");
@@ -285,8 +286,10 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+
+
     private void setGoogleAuthTokenAndFinish(boolean autoLogging) {
-        mNianticManager.setGoogleAuthToken(mPref.getGoogleAuthToken(), autoLogging);
+        mNianticManager.setGoogleAuthToken(mPref.getUsername(),mPref.getPassword(), autoLogging);
     }
 
     @Override
@@ -348,7 +351,8 @@ public class LoginActivity extends AppCompatActivity {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mNianticManager.login(username, password, mNianticLoginListener);
+            mNianticManager.setPTCAuthToken(username, password);
+//            mNianticManager.login(username, password, mNianticLoginListener);
 
         }
     }
@@ -388,7 +392,7 @@ public class LoginActivity extends AppCompatActivity {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mGoogleManager.googleAuthAttempt(username, password, mGoogleLoginListener);
+            mGoogleManager.googleAuthAttempt(username, password, false);
         }
     }
 
